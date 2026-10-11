@@ -12,6 +12,7 @@ import HistoricalTimeline from "@/components/HistoricalTimeline";
 import HistoricalTriviaQuiz from "@/components/HistoricalTriviaQuiz";
 import DailyQuoteGenerator from "@/components/DailyQuoteGenerator";
 import SpaceAmbientAudio from "@/components/SpaceAmbientAudio";
+import Artifact3DViewer from "@/components/Artifact3DViewer";
 
 const builder = imageUrlBuilder(client);
 function urlFor(source: any) {
@@ -114,6 +115,12 @@ async function BiographyContent({ slugPromise }: { slugPromise: Promise<{ slug: 
               <p className="text-slate-500 italic">The full biography has not been written yet.</p>
             )}
           </div>
+
+          {/* Interactive 3D Model Artifact Viewer (WebGL) */}
+          <Artifact3DViewer
+            biographyName={biography.name}
+            category={biography.category}
+          />
 
           {/* Feature 2: Interactive Historical Timeline */}
           <HistoricalTimeline

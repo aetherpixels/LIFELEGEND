@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Home, Compass, BookOpen, Sparkles, User, LogOut } from "lucide-react";
+import { Menu, X, Home, Compass, BookOpen, Sparkles, User, LogOut, Swords } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { sfx } from "@/lib/soundfx";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -12,6 +13,7 @@ export default function Navbar() {
   const navLinks = [
     { name: "[HOME]", href: "/", icon: Home },
     { name: "[LIVES]", href: "/biographies", icon: Compass },
+    { name: "[COMPARE]", href: "/compare", icon: Swords },
     { name: "[LIBRARY]", href: "/biographies#library", icon: BookOpen },
     { name: "[ABOUT]", href: "/#about", icon: Sparkles },
   ];
