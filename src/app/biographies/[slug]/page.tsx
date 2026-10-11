@@ -39,6 +39,11 @@ async function BiographyContent({ slugPromise }: { slugPromise: Promise<{ slug: 
     <>
       <BiographyReadingEnhancements
         biographyName={biography.name}
+        category={biography.category}
+        era={biography.era}
+        shortDescription={biography.shortDescription}
+        rawContentText={contentText}
+        quotes={biography.quotes}
         contentWordCount={wordCount}
       />
 
