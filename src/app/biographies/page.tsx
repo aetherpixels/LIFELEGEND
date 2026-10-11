@@ -2,16 +2,16 @@ import { client } from "@/sanity/client";
 import imageUrlBuilder from '@sanity/image-url';
 import Link from "next/link";
 import { Suspense } from "react";
-import { Heart } from "lucide-react";
 import AdBanner from "@/components/AdBanner";
 import Navbar from "@/components/Navbar";
+import BiographiesInteractive from "@/components/BiographiesInteractive";
 
 const builder = imageUrlBuilder(client);
 function urlFor(source: any) {
   return builder.image(source);
 }
 
-async function BiographiesList() {
+async function BiographiesData() {
   const biographies = await client.fetch(`*[_type == "biography"] | order(_createdAt desc) {
     _id,
     name,
@@ -22,56 +22,17 @@ async function BiographiesList() {
     image
   }`);
 
-  if (biographies.length === 0) {
-    return <p className="text-cyan-400 text-lg text-center my-20">No biographies found in the database.</p>;
-  }
+  const processed = (biographies || []).map((bio: any) => ({
+    _id: bio._id,
+    name: bio.name,
+    slug: bio.slug,
+    era: bio.era,
+    category: bio.category,
+    shortDescription: bio.shortDescription,
+    imageUrl: bio.image ? urlFor(bio.image).width(400).height(500).url() : undefined,
+  }));
 
-  return (
-    <div className="flex flex-wrap justify-center gap-6 mt-8">
-      {biographies.map((bio: any) => (
-        <Link key={bio._id} href={`/biographies/${bio.slug?.current || '#'}`} className="block w-full sm:w-[240px] shrink-0 group">
-          <div className="relative w-full aspect-[3/4.2] rounded-3xl overflow-hidden bg-[#151E3D] border-2 border-slate-700/50 hover:border-fuchsia-500 transition-all duration-300 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_30px_rgba(232,121,249,0.3)] transform group-hover:-translate-y-2">
-            
-            {/* Heart Icon */}
-            <div className="absolute top-4 right-4 z-20">
-               <Heart className="w-5 h-5 text-fuchsia-500/50 group-hover:text-fuchsia-400 transition-colors" />
-            </div>
-
-            {/* Image (Top 65%) */}
-            <div className="absolute top-0 inset-x-0 h-[65%] bg-slate-900 border-b border-white/5">
-              {bio.image ? (
-                <img 
-                  src={urlFor(bio.image).width(400).height(500).url()} 
-                  alt={bio.name}
-                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-700 font-bold tracking-[0.2em] text-xs uppercase bg-slate-900">
-                  No Image
-                </div>
-              )}
-            </div>
-
-            {/* Seamless Gradient Blend */}
-            <div className="absolute top-[45%] inset-x-0 h-[25%] bg-gradient-to-b from-transparent to-[#151E3D] z-10" />
-
-            {/* Text Content (Bottom Area) */}
-            <div className="absolute bottom-0 inset-x-0 h-[45%] bg-[#151E3D] p-5 flex flex-col justify-end z-10 text-left">
-              <h2 className="text-xl font-bold text-white mb-2 tracking-wide drop-shadow-md truncate">
-                {bio.name}
-              </h2>
-              <p className="text-[10px] text-slate-400 font-sans tracking-wide line-clamp-3 leading-relaxed">
-                {bio.shortDescription || 'A legendary figure whose actions shaped the course of human history and left an enduring legacy.'}
-              </p>
-            </div>
-
-            {/* Sci-Fi Glow Line at bottom of active cards */}
-            <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 to-fuchsia-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20" />
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
+  return <BiographiesInteractive initialBiographies={processed} />;
 }
 
 export default function BiographiesPage() {
@@ -128,10 +89,10 @@ export default function BiographiesPage() {
           </h1>
         </div>
 
-        {/* Dynamic Biographies Grid */}
+        {/* Dynamic Biographies Grid with Search, Categories, and Favorites */}
         <div id="library">
           <Suspense fallback={<div className="text-cyan-400 text-center animate-pulse tracking-[0.2em] uppercase font-bold text-sm my-20">Loading Database...</div>}>
-            <BiographiesList />
+            <BiographiesData />
           </Suspense>
         </div>
 
