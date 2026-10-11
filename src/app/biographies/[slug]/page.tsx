@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Quote } from "lucide-react";
 import { notFound } from "next/navigation";
 import AdBanner from "@/components/AdBanner";
+import Navbar from "@/components/Navbar";
 import { Suspense } from "react";
 
 const builder = imageUrlBuilder(client);
@@ -97,7 +98,9 @@ export default function BiographyDetailPage({ params }: { params: Promise<{ slug
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-600/10 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-amber-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-12 md:py-20">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-8 md:py-16">
+        <Navbar />
+
         <Link href="/biographies" className="inline-flex items-center text-indigo-400 hover:text-indigo-300 transition-colors mb-12 uppercase tracking-widest text-sm font-bold">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Gallery

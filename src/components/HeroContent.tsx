@@ -2,11 +2,15 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 export default function HeroContent() {
   return (
-    <div className="relative z-10 text-center px-6 max-w-5xl mx-auto pointer-events-none flex flex-col items-center justify-center min-h-screen">
+    <div className="relative z-10 w-full min-h-screen flex flex-col justify-between px-4 sm:px-6 py-6 max-w-6xl mx-auto">
+      <Navbar />
+
+      <div className="text-center my-auto flex flex-col items-center justify-center">
       <motion.p
         initial={{ opacity: 0, letterSpacing: "0em" }}
         animate={{ opacity: 1, letterSpacing: "0.2em" }}
@@ -46,14 +50,30 @@ export default function HeroContent() {
           <motion.button 
             whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(234, 179, 8, 0.3)" }}
             whileTap={{ scale: 0.95 }}
-            className="group relative flex items-center gap-4 bg-transparent text-amber-50 font-bold text-sm tracking-widest uppercase py-4 px-10 rounded-full transition-colors overflow-hidden border border-amber-500/50 backdrop-blur-md"
+            className="group relative flex items-center gap-4 bg-transparent text-amber-50 font-bold text-sm tracking-widest uppercase py-4 px-10 rounded-full transition-colors overflow-hidden border border-amber-500/50 backdrop-blur-md cursor-pointer"
           >
             <span className="relative z-10">Explore Legends</span>
             <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform text-amber-400" />
             <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 via-orange-600/20 to-amber-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           </motion.button>
         </Link>
+
+        <Link href="/biographies#library">
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="group flex items-center gap-3 bg-slate-900/60 text-slate-300 hover:text-white font-bold text-sm tracking-widest uppercase py-4 px-8 rounded-full transition-colors border border-slate-700/60 backdrop-blur-md cursor-pointer"
+          >
+            <BookOpen className="w-4 h-4 text-cyan-400" />
+            <span>Open Library</span>
+          </motion.button>
+        </Link>
       </motion.div>
+      </div>
+
+      <div className="text-center text-xs tracking-[0.25em] text-slate-600 uppercase py-2">
+        Powered by LifeLegends 3D Universe
+      </div>
     </div>
   );
 }
