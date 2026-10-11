@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Home, Compass, BookOpen, Sparkles } from "lucide-react";
+import { Menu, X, Home, Compass, BookOpen, Sparkles, User, LogOut } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, isLoggedIn, logout, openAuthModal } = useAuth();
 
   const navLinks = [
     { name: "[HOME]", href: "/", icon: Home },
@@ -39,6 +41,32 @@ export default function Navbar() {
           ))}
         </nav>
 
+        {/* Desktop User Status Badge */}
+        <div className="hidden md:flex items-center gap-3">
+          {isLoggedIn && user ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs">
+              <User className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="font-semibold text-slate-200 max-w-[100px] truncate">{user.name}</span>
+              <button
+                onClick={logout}
+                title="Log out"
+                type="button"
+                className="text-slate-400 hover:text-red-400 transition-colors ml-1 p-0.5 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={openAuthModal}
+              type="button"
+              className="px-4 py-1.5 rounded-full border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10 transition-all text-xs font-bold tracking-widest uppercase cursor-pointer"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
+
         {/* Mobile Hamburger Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -67,6 +95,35 @@ export default function Navbar() {
               </Link>
             );
           })}
+
+          <div className="pt-2 mt-2 border-t border-white/5">
+            {isLoggedIn && user ? (
+              <div className="flex items-center justify-between px-4 py-2 text-xs text-slate-300">
+                <span className="truncate">Signed in as <strong>{user.name}</strong></span>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  type="button"
+                  className="text-red-400 font-bold ml-2 underline"
+                >
+                  Log out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  openAuthModal();
+                  setMobileMenuOpen(false);
+                }}
+                type="button"
+                className="w-full text-center py-2.5 rounded-xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 text-xs font-bold tracking-widest uppercase cursor-pointer"
+              >
+                Sign In / Free Account
+              </button>
+            )}
+          </div>
         </div>
       )}
     </header>

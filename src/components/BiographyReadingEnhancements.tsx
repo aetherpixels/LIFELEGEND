@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, Clock, Share2, Check, Download } from "lucide-react";
+import { ArrowLeft, BookOpen, Clock, Share2, Check, Download, Lock } from "lucide-react";
 import jsPDF from "jspdf";
+import { useAuth } from "@/context/AuthContext";
+import AuthModal from "@/components/AuthModal";
 
 export default function BiographyReadingEnhancements({
   biographyName,
@@ -22,9 +24,11 @@ export default function BiographyReadingEnhancements({
   quotes?: string[];
   contentWordCount?: number;
 }) {
+  const { isLoggedIn, openAuthModal } = useAuth();
   const [readingProgress, setReadingProgress] = useState(0);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const pendingDownloadRef = useRef(false);
 
   // Approximate reading time (200 words per minute)
   const readingTime = Math.max(1, Math.ceil(contentWordCount / 200));
@@ -46,27 +50,7 @@ export default function BiographyReadingEnhancements({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `${biographyName} - LifeLegends`,
-          text: `Read the story of ${biographyName} on LifeLegends.`,
-          url: window.location.href,
-        });
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      }
-    } catch {
-      navigator.clipboard?.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
-
-  const handleDownloadPDF = () => {
+  const executePDFGeneration = () => {
     setDownloading(true);
     try {
       const doc = new jsPDF({
@@ -176,11 +160,50 @@ export default function BiographyReadingEnhancements({
       console.error("PDF generation error:", err);
     } finally {
       setDownloading(false);
+      pendingDownloadRef.current = false;
+    }
+  };
+
+  const handleDownloadClick = () => {
+    if (!isLoggedIn) {
+      pendingDownloadRef.current = true;
+      openAuthModal();
+      return;
+    }
+    executePDFGeneration();
+  };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${biographyName} - LifeLegends`,
+          text: `Read the story of ${biographyName} on LifeLegends.`,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      }
+    } catch {
+      navigator.clipboard?.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     }
   };
 
   return (
     <>
+      {/* Auth Modal Triggered if user clicks download while logged out */}
+      <AuthModal
+        onSuccess={() => {
+          if (pendingDownloadRef.current) {
+            executePDFGeneration();
+          }
+        }}
+      />
+
       {/* Top sticky reading progress bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-slate-900 z-50">
         <div
@@ -210,15 +233,25 @@ export default function BiographyReadingEnhancements({
             <span>{readingProgress}% READ</span>
           </div>
 
-          {/* Download PDF Button */}
+          {/* Download PDF Button with Login Protection */}
           <button
-            onClick={handleDownloadPDF}
+            onClick={handleDownloadClick}
             disabled={downloading}
             type="button"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10 active:scale-95 transition-all cursor-pointer font-bold tracking-wider shadow-[0_0_10px_rgba(232,121,249,0.15)]"
           >
-            <Download className="w-3.5 h-3.5 text-fuchsia-400" />
-            <span>{downloading ? "GENERATING..." : "DOWNLOAD PDF"}</span>
+            {isLoggedIn ? (
+              <Download className="w-3.5 h-3.5 text-fuchsia-400" />
+            ) : (
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+            )}
+            <span>
+              {downloading
+                ? "GENERATING..."
+                : isLoggedIn
+                ? "DOWNLOAD PDF"
+                : "LOGIN TO DOWNLOAD"}
+            </span>
           </button>
 
           {/* Share Button */}
