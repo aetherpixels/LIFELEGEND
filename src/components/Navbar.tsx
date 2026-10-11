@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Home, Compass, BookOpen, Sparkles, User, LogOut, Swords } from "lucide-react";
+import { Menu, X, Home, Compass, BookOpen, Sparkles, User, LogOut, Swords, Bot } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { sfx } from "@/lib/soundfx";
+import CommandPalette from "@/components/CommandPalette";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -13,9 +14,10 @@ export default function Navbar() {
   const navLinks = [
     { name: "[HOME]", href: "/", icon: Home },
     { name: "[LIVES]", href: "/biographies", icon: Compass },
+    { name: "[CONSTELLATION]", href: "/constellation", icon: Sparkles },
+    { name: "[ORACLE]", href: "/oracle", icon: Bot },
     { name: "[COMPARE]", href: "/compare", icon: Swords },
-    { name: "[LIBRARY]", href: "/biographies#library", icon: BookOpen },
-    { name: "[ABOUT]", href: "/#about", icon: Sparkles },
+    { name: "[CODEX]", href: "/codex", icon: BookOpen },
   ];
 
   return (
@@ -45,6 +47,7 @@ export default function Navbar() {
 
         {/* Desktop User Status Badge */}
         <div className="hidden md:flex items-center gap-3">
+          <CommandPalette />
           {isLoggedIn && user ? (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs">
               <User className="w-3.5 h-3.5 text-cyan-400" />

@@ -41,7 +41,7 @@ export default function HeroContent() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 1.2, type: "spring", bounce: 0.5 }}
-          className="pointer-events-auto"
+          className="pointer-events-auto flex flex-col items-center gap-6"
         >
           <Link href="/biographies">
             <motion.button 
@@ -54,11 +54,39 @@ export default function HeroContent() {
               <div className="absolute inset-0 bg-gradient-to-r from-amber-600/30 via-orange-600/30 to-amber-600/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </motion.button>
           </Link>
+
+          {/* 50-Lakh Tier Direct Exploration Portals */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 max-w-xl">
+            <Link
+              href="/constellation"
+              className="px-3.5 py-1.5 rounded-full bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-500/40 hover:border-cyan-400 text-[11px] sm:text-xs font-mono font-bold tracking-wider text-cyan-300 hover:text-white transition-all shadow-[0_0_15px_rgba(34,211,238,0.15)] cursor-pointer"
+            >
+              🌌 3D CONSTELLATION
+            </Link>
+            <Link
+              href="/oracle"
+              className="px-3.5 py-1.5 rounded-full bg-fuchsia-950/60 hover:bg-fuchsia-900/80 border border-fuchsia-500/40 hover:border-fuchsia-400 text-[11px] sm:text-xs font-mono font-bold tracking-wider text-fuchsia-300 hover:text-white transition-all shadow-[0_0_15px_rgba(217,70,239,0.15)] cursor-pointer"
+            >
+              🤖 AI ORACLE
+            </Link>
+            <Link
+              href="/compare"
+              className="px-3.5 py-1.5 rounded-full bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 hover:border-indigo-400 text-[11px] sm:text-xs font-mono font-bold tracking-wider text-indigo-300 hover:text-white transition-all shadow-[0_0_15px_rgba(99,102,241,0.15)] cursor-pointer"
+            >
+              ⚔️ CLASH MATRIX
+            </Link>
+            <Link
+              href="/codex"
+              className="px-3.5 py-1.5 rounded-full bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 hover:border-emerald-400 text-[11px] sm:text-xs font-mono font-bold tracking-wider text-emerald-300 hover:text-white transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] cursor-pointer"
+            >
+              📜 STUDY CODEX
+            </Link>
+          </div>
         </motion.div>
       </div>
 
       <div className="absolute bottom-6 text-center text-[10px] sm:text-xs tracking-[0.3em] text-slate-500 uppercase">
-        Click and drag to rotate the 3D globe
+        Click and drag to rotate the 3D globe • Press ⌘K or Ctrl+K for Global Search
       </div>
     </div>
   );
