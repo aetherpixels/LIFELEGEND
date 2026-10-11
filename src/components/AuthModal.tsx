@@ -12,18 +12,29 @@ export default function AuthModal({ onSuccess }: { onSuccess?: () => void }) {
 
   if (!isAuthModalOpen) return null;
 
+  const sanitizeInput = (str: string) => {
+    return str
+      .replace(/[<>'"&]/g, "") // Strip dangerous XSS injection characters
+      .trim();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError("Please enter your name.");
-      return;
-    }
-    if (!email.trim() || !email.includes("@")) {
-      setError("Please enter a valid email address.");
+    const cleanName = sanitizeInput(name);
+    const cleanEmail = sanitizeInput(email).toLowerCase();
+
+    if (!cleanName || cleanName.length < 2) {
+      setError("Please enter a valid name (minimum 2 characters).");
       return;
     }
 
-    login(name, email);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError("Please enter a valid email address (e.g. name@domain.com).");
+      return;
+    }
+
+    login(cleanName, cleanEmail);
     setError("");
     if (onSuccess) onSuccess();
   };
