@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import AdBanner from "@/components/AdBanner";
 import Navbar from "@/components/Navbar";
 import BiographiesInteractive from "@/components/BiographiesInteractive";
+import DailyQuoteGenerator from "@/components/DailyQuoteGenerator";
+import SpaceAmbientAudio from "@/components/SpaceAmbientAudio";
 
 const builder = imageUrlBuilder(client);
 function urlFor(source: any) {
@@ -96,6 +98,9 @@ export default function BiographiesPage() {
           </Suspense>
         </div>
 
+        {/* Daily Legend Quote Card Generator */}
+        <DailyQuoteGenerator />
+
         {/* Bottom CTA like in the mockup */}
         <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
@@ -113,6 +118,8 @@ export default function BiographiesPage() {
         </div>
 
       </div>
+
+      <SpaceAmbientAudio />
     </main>
   );
 }

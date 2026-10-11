@@ -1,13 +1,17 @@
 import { client } from "@/sanity/client";
 import imageUrlBuilder from '@sanity/image-url';
 import { PortableText } from '@portabletext/react';
-import Link from "next/link";
 import { Quote } from "lucide-react";
 import { notFound } from "next/navigation";
 import AdBanner from "@/components/AdBanner";
 import Navbar from "@/components/Navbar";
 import { Suspense } from "react";
 import BiographyReadingEnhancements from "@/components/BiographyReadingEnhancements";
+import AudioNarrator from "@/components/AudioNarrator";
+import HistoricalTimeline from "@/components/HistoricalTimeline";
+import HistoricalTriviaQuiz from "@/components/HistoricalTriviaQuiz";
+import DailyQuoteGenerator from "@/components/DailyQuoteGenerator";
+import SpaceAmbientAudio from "@/components/SpaceAmbientAudio";
 
 const builder = imageUrlBuilder(client);
 function urlFor(source: any) {
@@ -47,7 +51,13 @@ async function BiographyContent({ slugPromise }: { slugPromise: Promise<{ slug: 
         contentWordCount={wordCount}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+      {/* Feature 1: AI Audio Narrator */}
+      <AudioNarrator
+        title={biography.name}
+        textToRead={biography.shortDescription ? `${biography.shortDescription}. ${contentText}` : contentText}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start mt-8">
         {/* Left Column: Image & Quick Stats */}
         <div className="lg:col-span-5 space-y-8 sticky top-8">
           <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(99,102,241,0.15)] bg-slate-900">
@@ -105,11 +115,30 @@ async function BiographyContent({ slugPromise }: { slugPromise: Promise<{ slug: 
             )}
           </div>
 
+          {/* Feature 2: Interactive Historical Timeline */}
+          <HistoricalTimeline
+            biographyName={biography.name}
+            era={biography.era}
+            rawContent={contentText}
+          />
+
+          {/* Feature 3: Interactive Trivia Quiz Challenge */}
+          <HistoricalTriviaQuiz
+            biographyName={biography.name}
+            category={biography.category}
+          />
+
+          {/* Feature 4: Daily Legend Quote Card Generator */}
+          <DailyQuoteGenerator />
+
           <div className="mt-16">
             <AdBanner />
           </div>
         </div>
       </div>
+
+      {/* Feature 5: Ambient Soundscape Audio */}
+      <SpaceAmbientAudio />
     </>
   );
 }
