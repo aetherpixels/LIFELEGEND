@@ -63,9 +63,12 @@ export default function Navbar() {
             </div>
           ) : (
             <button
-              onClick={openAuthModal}
+              onClick={() => {
+                sfx.playClick();
+                openAuthModal();
+              }}
               type="button"
-              className="px-4 py-1.5 rounded-full border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10 transition-all text-xs font-bold tracking-widest uppercase cursor-pointer"
+              className="px-4 py-1.5 rounded-full border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10 active:scale-95 transition-all text-xs font-bold tracking-widest uppercase cursor-pointer"
             >
               Sign In
             </button>
@@ -119,11 +122,12 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => {
+                  sfx.playClick();
                   openAuthModal();
                   setMobileMenuOpen(false);
                 }}
                 type="button"
-                className="w-full text-center py-2.5 rounded-xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 text-xs font-bold tracking-widest uppercase cursor-pointer"
+                className="w-full text-center py-2.5 rounded-xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 text-xs font-bold tracking-widest uppercase cursor-pointer active:scale-95 transition-all"
               >
                 Sign In / Free Account
               </button>

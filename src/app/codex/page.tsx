@@ -8,6 +8,7 @@ import SpaceAmbientAudio from "@/components/SpaceAmbientAudio";
 import { useAuth } from "@/context/AuthContext";
 import { sfx } from "@/lib/soundfx";
 import jsPDF from "jspdf";
+import { COPYRIGHT_SEAL_BASE64 } from "@/lib/sealData";
 
 interface StudyNote {
   id: string;
@@ -99,10 +100,17 @@ export default function CodexVaultPage() {
       doc.setFillColor(11, 19, 43);
       doc.rect(0, 0, pageWidth, 90, "F");
 
+      // Embed Official LifeLegends Copyright Authenticity Seal
+      try {
+        doc.addImage(COPYRIGHT_SEAL_BASE64, "JPEG", pageWidth - margin - 70, 10, 70, 70);
+      } catch (imgErr) {
+        console.warn("Could not embed seal image in codex:", imgErr);
+      }
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.setTextColor(34, 211, 238);
-      doc.text("LIFELEGENDS CODEX VAULT", margin, 42);
+      doc.text("LIFELEGENDS CODEX VAULT", margin, 38);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
@@ -110,8 +118,11 @@ export default function CodexVaultPage() {
       doc.text(
         `RESEARCH ARCHIVE • SCHOLAR: ${user?.name ? user.name.toUpperCase() : "HISTORICAL RESEARCHER"}`,
         margin,
-        62
+        56
       );
+      doc.setFontSize(8.5);
+      doc.setTextColor(234, 179, 8); // Gold
+      doc.text("© OFFICIAL ARCHIVAL DOSSIER • VERIFIED COPYRIGHT SEAL EMBEDDED", margin, 72);
 
       let y = 130;
       doc.setFont("helvetica", "bold");
@@ -143,6 +154,20 @@ export default function CodexVaultPage() {
         doc.text(splitText, margin + 8, y);
         y += splitText.length * 15 + 15;
       });
+
+      // Footer
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(140, 150, 170);
+        doc.text(
+          `Page ${i} of ${totalPages} • © LifeLegends Universe • Verified Archival Copy • All Rights Reserved`,
+          pageWidth / 2,
+          818,
+          { align: "center" }
+        );
+      }
 
       doc.save("lifelegends-personal-codex.pdf");
     } catch (e) {

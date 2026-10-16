@@ -14,17 +14,32 @@ import DailyQuoteGenerator from "@/components/DailyQuoteGenerator";
 import SpaceAmbientAudio from "@/components/SpaceAmbientAudio";
 import Artifact3DViewer from "@/components/Artifact3DViewer";
 
+import { BIOGRAPHIES_DATA } from "@/data/biographies";
+
 const builder = imageUrlBuilder(client);
 function urlFor(source: any) {
   return builder.image(source);
 }
 
+export async function generateStaticParams() {
+  return BIOGRAPHIES_DATA.map((b) => ({
+    slug: b.slug.current,
+  }));
+}
+
 async function BiographyContent({ slugPromise }: { slugPromise: Promise<{ slug: string }> }) {
   const { slug } = await slugPromise;
   
-  const biography = await client.fetch(`*[_type == "biography" && slug.current == $slug][0]`, {
-    slug
-  });
+  let biography: any = BIOGRAPHIES_DATA.find((b) => b.slug.current === slug);
+  if (!biography) {
+    try {
+      biography = await client.fetch(`*[_type == "biography" && slug.current == $slug][0]`, {
+        slug
+      });
+    } catch (e) {
+      console.warn("Sanity fetch error:", e);
+    }
+  }
 
   if (!biography) {
     notFound();
@@ -37,7 +52,7 @@ async function BiographyContent({ slugPromise }: { slugPromise: Promise<{ slug: 
           block.children ? block.children.map((c: any) => c.text).join(" ") : ""
         )
         .join(" ")
-    : biography.shortDescription || "";
+    : biography.rawContentText || biography.shortDescription || "";
   const wordCount = contentText.split(/\s+/).filter(Boolean).length;
 
   return (
@@ -65,6 +80,12 @@ async function BiographyContent({ slugPromise }: { slugPromise: Promise<{ slug: 
             {biography.image ? (
               <img 
                 src={urlFor(biography.image).width(800).url()} 
+                alt={biography.name}
+                className="object-cover w-full h-full opacity-90"
+              />
+            ) : biography.imageUrl ? (
+              <img 
+                src={biography.imageUrl} 
                 alt={biography.name}
                 className="object-cover w-full h-full opacity-90"
               />

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "@/context/AuthContext";
+import AuthModal from "@/components/AuthModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-[#030712] text-white">
         <AuthProvider>
           {children}
+          <AuthModal />
         </AuthProvider>
         <Analytics />
       </body>

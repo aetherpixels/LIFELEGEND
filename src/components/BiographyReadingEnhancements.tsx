@@ -6,6 +6,7 @@ import { ArrowLeft, BookOpen, Clock, Share2, Check, Download, Lock } from "lucid
 import jsPDF from "jspdf";
 import { useAuth } from "@/context/AuthContext";
 import AuthModal from "@/components/AuthModal";
+import { COPYRIGHT_SEAL_BASE64 } from "@/lib/sealData";
 
 export default function BiographyReadingEnhancements({
   biographyName,
@@ -67,15 +68,26 @@ export default function BiographyReadingEnhancements({
       doc.setFillColor(11, 19, 43); // Dark navy
       doc.rect(0, 0, pageWidth, 90, "F");
 
+      // Embed Official LifeLegends Copyright Authenticity Seal
+      try {
+        doc.addImage(COPYRIGHT_SEAL_BASE64, "JPEG", pageWidth - margin - 70, 10, 70, 70);
+      } catch (imgErr) {
+        console.warn("Could not embed seal image:", imgErr);
+      }
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.setTextColor(34, 211, 238); // Cyan
-      doc.text("LIFELEGENDS", margin, 42);
+      doc.text("LIFELEGENDS", margin, 38);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.setTextColor(200, 200, 220);
-      doc.text("LEGENDS NEVER DIE - HISTORICAL ARCHIVE", margin, 62);
+      doc.text("LEGENDS NEVER DIE - HISTORICAL ARCHIVE", margin, 56);
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(234, 179, 8); // Gold
+      doc.text("© OFFICIAL ARCHIVAL COPY • VERIFIED COPYRIGHT SEAL EMBEDDED", margin, 72);
 
       // Biography Title
       let y = 130;
@@ -144,12 +156,12 @@ export default function BiographyReadingEnhancements({
       const totalPages = doc.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
-        doc.setFontSize(9);
-        doc.setTextColor(150, 150, 160);
+        doc.setFontSize(8);
+        doc.setTextColor(140, 150, 170);
         doc.text(
-          `Page ${i} of ${totalPages} - Exported from LifeLegends Universe`,
+          `Page ${i} of ${totalPages} • © LifeLegends Universe • Verified Archival Copy • All Rights Reserved`,
           pageWidth / 2,
-          820,
+          818,
           { align: "center" }
         );
       }

@@ -8,23 +8,30 @@ import BiographiesInteractive from "@/components/BiographiesInteractive";
 import DailyQuoteGenerator from "@/components/DailyQuoteGenerator";
 import SpaceAmbientAudio from "@/components/SpaceAmbientAudio";
 
+import { BIOGRAPHIES_DATA } from "@/data/biographies";
+
 const builder = imageUrlBuilder(client);
 function urlFor(source: any) {
   return builder.image(source);
 }
 
 async function BiographiesData() {
-  const biographies = await client.fetch(`*[_type == "biography"] | order(_createdAt desc) {
-    _id,
-    name,
-    slug,
-    era,
-    category,
-    shortDescription,
-    image
-  }`);
+  let sanityBiographies: any[] = [];
+  try {
+    sanityBiographies = await client.fetch(`*[_type == "biography"] | order(_createdAt desc) {
+      _id,
+      name,
+      slug,
+      era,
+      category,
+      shortDescription,
+      image
+    }`);
+  } catch (e) {
+    console.warn("Sanity fetch skipped, using curated dataset:", e);
+  }
 
-  const processed = (biographies || []).map((bio: any) => ({
+  const processedSanity = (sanityBiographies || []).map((bio: any) => ({
     _id: bio._id,
     name: bio.name,
     slug: bio.slug,
@@ -34,7 +41,21 @@ async function BiographiesData() {
     imageUrl: bio.image ? urlFor(bio.image).width(400).height(500).url() : undefined,
   }));
 
-  return <BiographiesInteractive initialBiographies={processed} />;
+  // Merge Sanity with curated dataset of 15 legends
+  const seenSlugs = new Set(processedSanity.map((b) => b.slug?.current).filter(Boolean));
+  const curatedItems = BIOGRAPHIES_DATA.filter((b) => !seenSlugs.has(b.slug.current)).map((b) => ({
+    _id: b._id,
+    name: b.name,
+    slug: b.slug,
+    era: b.era,
+    category: b.category,
+    shortDescription: b.shortDescription,
+    imageUrl: b.imageUrl,
+  }));
+
+  const allBiographies = [...processedSanity, ...curatedItems];
+
+  return <BiographiesInteractive initialBiographies={allBiographies} />;
 }
 
 export default function BiographiesPage() {
