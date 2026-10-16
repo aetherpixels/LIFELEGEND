@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   Send,
   Bot,
@@ -16,12 +16,21 @@ import {
   Search,
   BookOpen,
   ArrowRight,
-  ExternalLink,
   ShieldCheck,
   Cpu,
-  RefreshCw,
   PlusCircle,
-  HelpCircle,
+  Mic,
+  MicOff,
+  ChevronDown,
+  ChevronUp,
+  FileCode,
+  Layers,
+  History,
+  Trash2,
+  Maximize2,
+  Minimize2,
+  Flame,
+  Radio,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import SpaceAmbientAudio from "@/components/SpaceAmbientAudio";
@@ -40,13 +49,32 @@ interface Persona {
   isCustom?: boolean;
 }
 
+interface OracleArtifact {
+  id: string;
+  title: string;
+  type: "formula" | "blueprint" | "timeline" | "code" | "manuscript";
+  badge: string;
+  data: string;
+  summary: string;
+}
+
 interface ChatMessage {
   id: string;
   sender: "user" | "oracle";
   text: string;
   timestamp: string;
   source?: string;
+  thinking?: string;
+  artifact?: OracleArtifact;
   suggestedFollowUps?: string[];
+}
+
+interface ChatSession {
+  id: string;
+  title: string;
+  personaId: string;
+  messages: ChatMessage[];
+  updatedAt: string;
 }
 
 const PRESET_PERSONAS: Persona[] = [
@@ -56,6 +84,7 @@ const PRESET_PERSONAS: Persona[] = [
     title: "Master of Lightning & Wireless Resonance",
     era: "1856 – 1943",
     avatarColor: "from-cyan-400 to-blue-600",
+    imageUrl: "/portraits/nikola-tesla.jpg",
     greeting:
       "Greetings, traveler of the 21st century. I am Nikola Tesla. You inhabit the world of wireless communion I foresaw in my Wardenclyffe laboratory. What secrets of the ether, polyphase electricity, or cosmic energy shall we examine today?",
     suggestedQuestions: [
@@ -71,6 +100,7 @@ const PRESET_PERSONAS: Persona[] = [
     title: "Father of Relativity & Modern Cosmology",
     era: "1879 – 1955",
     avatarColor: "from-indigo-400 to-cyan-500",
+    imageUrl: "/portraits/albert-einstein.jpg",
     greeting:
       "Guten Tag, my friend. I am Albert Einstein. Put aside your formalities—life is too short and spacetime is too curved for rigid protocol. What mystery of relativity, quantum quanta, or human curiosity shall we unravel?",
     suggestedQuestions: [
@@ -86,6 +116,7 @@ const PRESET_PERSONAS: Persona[] = [
     title: "Enchantress of Numbers & First Programmer",
     era: "1815 – 1852",
     avatarColor: "from-fuchsia-400 to-purple-600",
+    imageUrl: "/portraits/ada-lovelace.jpg",
     greeting:
       "A warm welcome to you. I am Augusta Ada King, Countess of Lovelace. Charles Babbage called me the 'Enchantress of Numbers'. Let us explore the harmony of 'Poetical Science' and the limitless horizons of calculating engines.",
     suggestedQuestions: [
@@ -101,6 +132,7 @@ const PRESET_PERSONAS: Persona[] = [
     title: "Master of Florence & Universal Polymath",
     era: "1452 – 1519",
     avatarColor: "from-emerald-400 to-teal-600",
+    imageUrl: "/portraits/leonardo-da-vinci.jpg",
     greeting:
       "Salute, seeker of truth. I am Leonardo di ser Piero da Vinci. The eye is the window to the soul, and nature is the supreme teacher. What observation of anatomy, mechanics, flight, or painting occupies your mind?",
     suggestedQuestions: [
@@ -116,6 +148,7 @@ const PRESET_PERSONAS: Persona[] = [
     title: "Double Nobel Laureate & Radioactivity Pioneer",
     era: "1867 – 1934",
     avatarColor: "from-amber-400 to-orange-600",
+    imageUrl: "/portraits/marie-curie.jpg",
     greeting:
       "Bonjour. I am Marie Skłodowska Curie. In my laboratory in Paris, Pierre and I labored through tons of pitchblende to unlock the radiant heart of matter. Let us discuss the atomic core and scientific perseverance.",
     suggestedQuestions: [
@@ -131,6 +164,7 @@ const PRESET_PERSONAS: Persona[] = [
     title: "Architect of Classical Physics & Calculus",
     era: "1642 – 1727",
     avatarColor: "from-sky-400 to-indigo-600",
+    imageUrl: "/portraits/isaac-newton.jpg",
     greeting:
       "Greetings. I am Isaac Newton. Through contemplation of fluxions, gravity, and the prism of light, I sought the mathematical principles governing God's creation. What laws of motion shall we contemplate?",
     suggestedQuestions: [
@@ -146,6 +180,7 @@ const PRESET_PERSONAS: Persona[] = [
     title: "Father of Computer Science & Enigma Breaker",
     era: "1912 – 1954",
     avatarColor: "from-cyan-500 to-teal-700",
+    imageUrl: "/portraits/alan-turing.jpg",
     greeting:
       "Hello. I am Alan Turing. At Bletchley Park and through the abstract formulation of the universal machine, I explored the boundaries of computation and thought. What questions of logic or intelligence do you bring?",
     suggestedQuestions: [
@@ -161,6 +196,7 @@ const PRESET_PERSONAS: Persona[] = [
     title: "Quantum Electrodynamics & Nobel Pioneer",
     era: "1918 – 1988",
     avatarColor: "from-rose-400 to-red-600",
+    imageUrl: "/portraits/richard-feynman.jpg",
     greeting:
       "Hey there! Richard Feynman here. Put away the stuffed-shirt jargon—science is about the sheer, unadulterated pleasure of finding things out! What piece of physics or nature are you trying to understand?",
     suggestedQuestions: [
@@ -168,6 +204,38 @@ const PRESET_PERSONAS: Persona[] = [
       "Why is the 'pleasure of finding things out' the heart of physics?",
       "How did you approach thinking like an outsider in science?",
       "Can anyone truly understand quantum mechanics?",
+    ],
+  },
+  {
+    id: "hawking",
+    name: "Stephen Hawking",
+    title: "Master of Black Hole Thermodynamics",
+    era: "1942 – 2018",
+    avatarColor: "from-violet-400 to-indigo-600",
+    imageUrl: "/portraits/stephen-hawking.jpg",
+    greeting:
+      "Greetings. I am Stephen Hawking. Looking into the depths of black holes and the cosmic dawn of time, I sought to unify quantum theory with general relativity. What cosmological frontier shall we examine?",
+    suggestedQuestions: [
+      "What is Hawking Radiation and how do black holes evaporate?",
+      "What happens to information when it falls into a black hole?",
+      "What happened before the Big Bang?",
+      "What is your advice for facing overwhelming adversity?",
+    ],
+  },
+  {
+    id: "ramanujan",
+    name: "Srinivasa Ramanujan",
+    title: "Mathematical Genius of Infinite Series",
+    era: "1887 – 1920",
+    avatarColor: "from-amber-500 to-yellow-600",
+    imageUrl: "/portraits/srinivasa-ramanujan.jpg",
+    greeting:
+      "Namaste. I am Srinivasa Ramanujan. To me, an equation has no meaning unless it expresses a thought of God. Let us wander through the infinite series, modular forms, and partition wonders of pure mathematics.",
+    suggestedQuestions: [
+      "How did your famous infinite series for 1/pi come to you?",
+      "What is the story behind the taxicab number 1729?",
+      "What are Mock Theta functions in modern physics?",
+      "What was your collaboration with G.H. Hardy like at Cambridge?",
     ],
   },
   {
@@ -181,8 +249,8 @@ const PRESET_PERSONAS: Persona[] = [
     suggestedQuestions: [
       "Compare the discoveries of Isaac Newton and Albert Einstein.",
       "Who was J. Robert Oppenheimer and what was the Manhattan Project?",
-      "Tell me about Srinivasa Ramanujan's mathematical genius.",
-      "How did Rosalind Franklin contribute to the discovery of DNA?",
+      "Tell me about Rosalind Franklin's Photo 51 and DNA.",
+      "How did Aryabhata compute the rotating Earth and concept of zero?",
     ],
   },
 ];
@@ -195,6 +263,23 @@ export default function OraclePage() {
   const [isTyping, setIsTyping] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+
+  // Claude-Style Interactive Artifact State
+  const [activeArtifact, setActiveArtifact] = useState<OracleArtifact | null>(null);
+  const [showArtifactDrawer, setShowArtifactDrawer] = useState(false);
+  const [expandedThinking, setExpandedThinking] = useState<Record<string, boolean>>({});
+
+  // Voice Input (Speech-to-Text Microphone)
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // ChatGPT-style Chat Sessions Sidebar
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string>("");
+  const [showSidebar, setShowSidebar] = useState(false);
+
+  // Reasoning Mode Selector (Quantum / Socratic / Archival)
+  const [reasoningMode, setReasoningMode] = useState<"quantum" | "socratic" | "archival">("quantum");
 
   // Summon State
   const [summonQuery, setSummonQuery] = useState("");
@@ -215,28 +300,42 @@ export default function OraclePage() {
     [personas, selectedPersonaId]
   );
 
-  // Load custom key from storage on mount
+  // Load saved sessions & settings from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("lifelegends_oracle_custom_key");
-      if (stored) setCustomApiKey(stored);
+      const storedKey = localStorage.getItem("lifelegends_oracle_custom_key");
+      if (storedKey) setCustomApiKey(storedKey);
+
+      const storedSessions = localStorage.getItem("lifelegends_saved_oracle_sessions");
+      if (storedSessions) {
+        const parsed = JSON.parse(storedSessions);
+        setSessions(parsed);
+      }
     } catch {}
   }, []);
 
-  // Set initial greeting when active persona changes
+  // Save sessions to localStorage
+  const persistSessions = (updated: ChatSession[]) => {
+    setSessions(updated);
+    try {
+      localStorage.setItem("lifelegends_saved_oracle_sessions", JSON.stringify(updated.slice(0, 20)));
+    } catch {}
+  };
+
+  // Start a new session or set greeting
   useEffect(() => {
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setMessages([
-      {
-        id: "greeting",
-        sender: "oracle",
-        text: activePersona.greeting,
-        timestamp: timeStr,
-        source: "Historical Persona Core",
-        suggestedFollowUps: activePersona.suggestedQuestions.slice(0, 3),
-      },
-    ]);
+    const initialMsg: ChatMessage = {
+      id: "greeting-" + Date.now(),
+      sender: "oracle",
+      text: activePersona.greeting,
+      timestamp: timeStr,
+      source: "Verified Persona Knowledge Core",
+      suggestedFollowUps: activePersona.suggestedQuestions.slice(0, 3),
+    };
+    setMessages([initialMsg]);
     stopSpeech();
+    setActiveArtifact(null);
   }, [activePersona]);
 
   // Auto-scroll messages
@@ -244,7 +343,7 @@ export default function OraclePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Clean up speech on unmount
+  // Speech cleanup on unmount
   useEffect(() => {
     return () => {
       stopSpeech();
@@ -269,18 +368,17 @@ export default function OraclePage() {
     stopSpeech();
     sfx.playClick();
 
-    // Clean markdown for speech
     const cleanSpeech = text
       .replace(/\*\*(.*?)\*\*/g, "$1")
-      .replace(/[*_#`]/g, "")
+      .replace(/[*_#`\[\]]/g, "")
       .replace(/\n+/g, " ")
       .trim();
 
     const utterance = new SpeechSynthesisUtterance(cleanSpeech);
     utterance.rate = 1.0;
-    utterance.pitch = activePersona.id === "einstein" ? 0.9 : activePersona.id === "turing" ? 1.05 : 1.0;
+    utterance.pitch =
+      activePersona.id === "einstein" ? 0.9 : activePersona.id === "turing" ? 1.05 : 1.0;
 
-    // Pick English voice if available
     const voices = window.speechSynthesis.getVoices();
     const enVoice = voices.find((v) => v.lang.startsWith("en") && !v.name.includes("Zira")) || voices[0];
     if (enVoice) utterance.voice = enVoice;
@@ -291,6 +389,57 @@ export default function OraclePage() {
     speechRef.current = utterance;
     setSpeakingId(id);
     window.speechSynthesis.speak(utterance);
+  };
+
+  // Speech-to-Text Microphone Dictation (ChatGPT Voice Mode)
+  const toggleSpeechRecognition = () => {
+    sfx.playClick();
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Voice recognition is supported in Chrome, Edge, and modern browsers.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join("");
+        setInputValue(transcript);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      setIsListening(false);
+    }
   };
 
   const copyToClipboard = async (id: string, text: string) => {
@@ -315,7 +464,26 @@ export default function OraclePage() {
     } catch {}
   };
 
-  // Summon any scientist/biography from history
+  // Create a new session
+  const handleNewSession = () => {
+    sfx.playSuccess();
+    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const newId = Date.now().toString();
+    const newMsg: ChatMessage = {
+      id: "greeting-" + newId,
+      sender: "oracle",
+      text: activePersona.greeting,
+      timestamp: timeStr,
+      source: "Verified Persona Knowledge Core",
+      suggestedFollowUps: activePersona.suggestedQuestions.slice(0, 3),
+    };
+    setMessages([newMsg]);
+    setCurrentSessionId(newId);
+    setActiveArtifact(null);
+    setShowSidebar(false);
+  };
+
+  // Summon any historical figure
   const handleSummon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!summonQuery.trim() || isSummoning) return;
@@ -332,9 +500,7 @@ export default function OraclePage() {
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Could not summon figure");
-      }
+      if (!res.ok) throw new Error(data.error || "Could not summon figure");
 
       const newPersona: Persona = {
         id: data.id,
@@ -354,7 +520,7 @@ export default function OraclePage() {
       setSummonQuery("");
       setShowSummonBar(false);
     } catch (err: any) {
-      setSummonError(err.message || "Failed to summon. Try typing another name.");
+      setSummonError(err.message || "Failed to summon figure. Try typing another name.");
     } finally {
       setIsSummoning(false);
     }
@@ -364,6 +530,11 @@ export default function OraclePage() {
   const handleSend = async (messageToSend?: string) => {
     const query = (messageToSend || inputValue).trim();
     if (!query || isTyping) return;
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
 
     sfx.playClick();
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -375,12 +546,13 @@ export default function OraclePage() {
       timestamp: timeStr,
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const newHistory = [...messages, userMsg];
+    setMessages(newHistory);
     if (!messageToSend) setInputValue("");
     setIsTyping(true);
 
     try {
-      const historyPayload = messages.slice(-4).map((m) => ({
+      const historyPayload = newHistory.slice(-5).map((m) => ({
         role: m.sender,
         text: m.text,
       }));
@@ -398,13 +570,12 @@ export default function OraclePage() {
           },
           history: historyPayload,
           apiKey: customApiKey.trim() || undefined,
+          reasoningMode,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Oracle error");
-      }
+      if (!res.ok) throw new Error(data.error || "Oracle error");
 
       sfx.playSuccess();
       const oracleMsg: ChatMessage = {
@@ -413,17 +584,42 @@ export default function OraclePage() {
         text: data.reply,
         timestamp: data.timestamp || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         source: data.source,
+        thinking: data.thinking,
+        artifact: data.artifact,
         suggestedFollowUps: data.suggestedFollowUps,
       };
 
-      setMessages((prev) => [...prev, oracleMsg]);
+      const finalMessages = [...newHistory, oracleMsg];
+      setMessages(finalMessages);
+
+      if (data.artifact) {
+        setActiveArtifact(data.artifact);
+        setShowArtifactDrawer(true);
+      }
+
+      // Update or create session in sidebar
+      const sessionTitle = query.slice(0, 35) + (query.length > 35 ? "..." : "");
+      const sessionId = currentSessionId || Date.now().toString();
+      setCurrentSessionId(sessionId);
+
+      const updatedSessions = [
+        {
+          id: sessionId,
+          title: `${activePersona.name}: ${sessionTitle}`,
+          personaId: activePersona.id,
+          messages: finalMessages,
+          updatedAt: timeStr,
+        },
+        ...sessions.filter((s) => s.id !== sessionId),
+      ];
+      persistSessions(updatedSessions);
     } catch (err: any) {
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: "oracle",
         text: `My connection through the historical ether was momentarily severed (${err.message}). Ask me again, and we shall resume our inquiry.`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        source: "System Fallback",
+        source: "System Fallback Core",
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
@@ -450,22 +646,50 @@ export default function OraclePage() {
       localStorage.setItem("lifelegends_study_codex_notes", JSON.stringify([newCodexEntry, ...existingNotes]));
       alert(`Dialogue successfully exported to your Personal Study Codex Vault! You can view or generate a PDF in [CODEX].`);
     } catch {
-      alert("Dialogue copied to memory.");
+      alert("Dialogue saved to memory.");
     }
   };
 
-  // Render message with basic markdown support (bolding and quotes)
+  // Download Transcript as Markdown
+  const handleDownloadTranscript = () => {
+    sfx.playSuccess();
+    const content = `# LIFELEGENDS AI ORACLE TRANSCRIPT
+Historical Figure: ${activePersona.name} (${activePersona.era})
+Archival Session: ${new Date().toLocaleDateString()}
+
+${messages
+  .map(
+    (m) =>
+      `### ${m.sender === "user" ? "Scholar" : activePersona.name} (${m.timestamp})\n${m.text}\n`
+  )
+  .join("\n---\n\n")}
+`;
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activePersona.name.toLowerCase().replace(/\s+/g, "-")}-oracle-transcript.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const renderFormattedText = (raw: string) => {
     const paragraphs = raw.split("\n\n");
     return paragraphs.map((para, pIdx) => {
-      // Split on bold syntax **text**
+      if (para.startsWith("### ")) {
+        return (
+          <h4 key={pIdx} className="text-sm font-bold text-cyan-300 mt-3 mb-1 uppercase tracking-wider">
+            {para.replace("### ", "")}
+          </h4>
+        );
+      }
       const parts = para.split(/(\*\*.*?\*\*)/g);
       return (
-        <p key={pIdx} className="mb-2 last:mb-0 leading-relaxed">
+        <p key={pIdx} className="mb-2 last:mb-0 leading-relaxed text-slate-200">
           {parts.map((part, idx) => {
             if (part.startsWith("**") && part.endsWith("**")) {
               return (
-                <strong key={idx} className="font-bold text-cyan-200">
+                <strong key={idx} className="font-bold text-cyan-300">
                   {part.slice(2, -2)}
                 </strong>
               );
@@ -483,55 +707,88 @@ export default function OraclePage() {
       <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-cyan-600/10 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-fuchsia-600/10 blur-[150px] rounded-full pointer-events-none" />
 
-      <div className="relative z-10 max-w-6xl mx-auto flex flex-col min-h-[calc(100vh-2rem)]">
+      <div className="relative z-10 max-w-7xl mx-auto flex flex-col min-h-[calc(100vh-2rem)]">
         <Navbar />
 
         {/* Header HUD */}
-        <div className="text-center my-4 sm:my-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold tracking-widest uppercase mb-3 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+        <div className="text-center my-3 sm:my-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold tracking-widest uppercase mb-2 shadow-[0_0_20px_rgba(34,211,238,0.25)]">
             <Cpu className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-            <span>Advanced Historical LLM & Biographical RAG Engine</span>
+            <span>Quantum Historical LLM & Interactive Artifact Engine</span>
             <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
               100% Free Forever
             </span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300">
-            AI Oracle: Dialogue with History
+            AI Oracle: Dialogue with Legends
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 font-light max-w-2xl mx-auto mt-2">
-            Converse in real-time with any scientist, mathematician, or pioneer in human history. Powered by deep
-            biographical knowledge, authentic historical writings, and neural persona synthesis.
+          <p className="text-xs sm:text-sm text-slate-400 font-light max-w-2xl mx-auto mt-1">
+            Real-time conversational simulation at the level of ChatGPT & Claude with verified historical RAG, deep
+            chain-of-thought reasoning, live voice mode, and interactive scientific artifacts.
           </p>
 
-          {/* Quick Action Controls */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5 mt-4">
+          {/* Reasoning Depth & Model Controls */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-3.5">
+            {/* Reasoning Modes */}
+            <div className="inline-flex rounded-xl bg-slate-900/90 border border-cyan-500/30 p-0.5 text-xs font-mono">
+              <button
+                onClick={() => setReasoningMode("quantum")}
+                type="button"
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  reasoningMode === "quantum"
+                    ? "bg-cyan-500 text-black font-bold shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                ⚡ Quantum Fast
+              </button>
+              <button
+                onClick={() => setReasoningMode("socratic")}
+                type="button"
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  reasoningMode === "socratic"
+                    ? "bg-fuchsia-500 text-white font-bold shadow-[0_0_10px_rgba(217,70,239,0.5)]"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                🧠 Deep Socratic
+              </button>
+              <button
+                onClick={() => setReasoningMode("archival")}
+                type="button"
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  reasoningMode === "archival"
+                    ? "bg-amber-500 text-black font-bold shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                🏛️ Archival Thesis
+              </button>
+            </div>
+
             <button
               onClick={() => {
                 sfx.playClick();
                 setShowSummonBar(!showSummonBar);
               }}
               type="button"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-200 text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.2)]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-200 text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5 text-cyan-300" />
-              <span>Summon Any Scientist</span>
+              <span>Summon Any Legend</span>
             </button>
 
             <button
               onClick={() => {
                 sfx.playClick();
-                setSelectedPersonaId("universal");
+                setShowSidebar(!showSidebar);
               }}
               type="button"
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
-                selectedPersonaId === "universal"
-                  ? "bg-fuchsia-500/25 border-fuchsia-400 text-fuchsia-200 shadow-[0_0_20px_rgba(217,70,239,0.3)]"
-                  : "bg-slate-900/80 border-slate-700 text-slate-300 hover:text-white hover:border-slate-500"
-              }`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white text-xs font-mono transition-all cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-fuchsia-400" />
-              <span>Omniscient Mode (All Science)</span>
+              <History className="w-3.5 h-3.5 text-cyan-400" />
+              <span>History ({sessions.length})</span>
             </button>
 
             <button
@@ -541,7 +798,7 @@ export default function OraclePage() {
               }}
               type="button"
               title="Engine Settings"
-              className="p-2 rounded-full bg-slate-900/80 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white transition-all cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white transition-all cursor-pointer"
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
@@ -552,7 +809,7 @@ export default function OraclePage() {
         {showSummonBar && (
           <form
             onSubmit={handleSummon}
-            className="mb-6 p-4 rounded-3xl bg-[#091129]/95 border-2 border-cyan-400/50 shadow-[0_0_40px_rgba(34,211,238,0.25)] animate-in fade-in slide-in-from-top-2"
+            className="mb-4 p-4 rounded-3xl bg-[#091129]/95 border-2 border-cyan-400/50 shadow-[0_0_40px_rgba(34,211,238,0.25)] animate-in fade-in slide-in-from-top-2"
           >
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <div className="relative w-full">
@@ -574,19 +831,14 @@ export default function OraclePage() {
                 {isSummoning ? "Summoning from History..." : "Summon Legend"}
               </button>
             </div>
-
             {summonError && <p className="mt-2 text-xs text-rose-400 font-mono">{summonError}</p>}
-            <p className="mt-2 text-[11px] text-slate-400 font-light">
-              Tip: You can summon any historical scientist, philosopher, inventor, or Nobel laureate. The system will
-              dynamically fetch their biographical data and initiate a first-person dialogue.
-            </p>
           </form>
         )}
 
         {/* Optional Engine Settings Panel */}
         {showSettings && (
-          <div className="mb-6 p-5 rounded-3xl bg-[#0b163a]/90 border border-white/10 backdrop-blur-xl animate-in fade-in">
-            <div className="flex items-center justify-between mb-3">
+          <div className="mb-4 p-5 rounded-3xl bg-[#0b163a]/90 border border-white/10 backdrop-blur-xl animate-in fade-in">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">
@@ -601,31 +853,27 @@ export default function OraclePage() {
                 Close
               </button>
             </div>
-
-            <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              By default, this Oracle operates on an <strong>Autonomous Historical RAG Engine</strong> that retrieves
-              authentic historical archives from Wikipedia, completely <strong>100% free forever</strong> with zero API
-              keys or subscription costs. If you wish to use raw Google Gemini 2.0 Flash or Groq Llama-3.3, you may
-              optionally supply a private key below.
+            <p className="text-xs text-slate-300 leading-relaxed mb-3">
+              By default, this Oracle operates on an <strong>Autonomous Historical RAG Engine</strong> with zero API
+              keys and $0 running costs forever. To connect custom private cloud models (Google Gemini 2.0 Flash or Groq
+              Llama-3.3), paste your key below:
             </p>
-
             <div className="flex flex-col sm:flex-row items-center gap-2">
               <input
                 type="password"
                 placeholder="Optional: Enter Gemini or Groq API Key..."
                 value={customApiKey}
                 onChange={(e) => setCustomApiKey(e.target.value)}
-                className="w-full sm:flex-1 bg-[#040816] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-400"
+                className="w-full sm:flex-1 bg-[#040816] border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-400"
               />
               <button
                 onClick={saveKey}
                 type="button"
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-cyan-500 text-black font-bold text-xs uppercase tracking-wider hover:bg-cyan-400 transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-5 py-2 rounded-xl bg-cyan-500 text-black font-bold text-xs uppercase tracking-wider hover:bg-cyan-400 transition-colors cursor-pointer"
               >
                 Save Settings
               </button>
             </div>
-
             {savedKeyNotice && (
               <p className="mt-2 text-xs text-emerald-400 font-mono">Settings updated successfully.</p>
             )}
@@ -633,7 +881,7 @@ export default function OraclePage() {
         )}
 
         {/* Persona Selector Carousel */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-thin">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 scrollbar-thin">
           {personas.map((persona) => {
             const isSelected = persona.id === selectedPersonaId;
             return (
@@ -645,7 +893,7 @@ export default function OraclePage() {
                 }}
                 onMouseEnter={() => sfx.playHover()}
                 type="button"
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wider uppercase transition-all cursor-pointer shrink-0 border ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-bold tracking-wider uppercase transition-all cursor-pointer shrink-0 border ${
                   isSelected
                     ? "bg-gradient-to-r from-cyan-500/25 to-fuchsia-500/25 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.35)] scale-[1.02]"
                     : "bg-slate-900/60 border-white/5 text-slate-400 hover:text-white hover:border-cyan-500/30"
@@ -655,14 +903,14 @@ export default function OraclePage() {
                   <img
                     src={persona.imageUrl}
                     alt={persona.name}
-                    className="w-6 h-6 rounded-full object-cover border border-cyan-400/50"
+                    className="w-5 h-5 rounded-full object-cover border border-cyan-400/50"
                   />
                 ) : (
-                  <span className={`w-2.5 h-2.5 rounded-full bg-gradient-to-r ${persona.avatarColor}`} />
+                  <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${persona.avatarColor}`} />
                 )}
                 <span>{persona.name}</span>
                 {persona.isCustom && (
-                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 font-mono">
+                  <span className="text-[9px] px-1 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 font-mono">
                     Custom
                   </span>
                 )}
@@ -671,206 +919,414 @@ export default function OraclePage() {
           })}
         </div>
 
-        {/* Chat Tablet Window */}
-        <div className="flex-1 rounded-3xl bg-[#091129]/90 border border-cyan-500/30 backdrop-blur-2xl shadow-[0_20px_80px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden max-h-[660px]">
-          {/* Active Persona Banner Header */}
-          <div className="p-4 sm:p-5 border-b border-white/5 bg-slate-950/70 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              {activePersona.imageUrl ? (
-                <img
-                  src={activePersona.imageUrl}
-                  alt={activePersona.name}
-                  className="w-11 h-11 rounded-2xl object-cover border-2 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.4)] shrink-0"
-                />
-              ) : (
-                <div
-                  className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${activePersona.avatarColor} flex items-center justify-center font-black text-black text-sm shadow-[0_0_15px_rgba(34,211,238,0.4)] shrink-0`}
-                >
-                  {activePersona.name[0]}
+        {/* Main Workspace (Side-by-side Chat & Claude-Style Artifact Panel) */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 max-h-[720px] min-h-[580px]">
+          {/* Left Session Drawer / Sidebar (Collapsible) */}
+          {showSidebar && (
+            <div className="lg:col-span-3 rounded-3xl bg-[#091129]/95 border border-cyan-500/30 p-4 flex flex-col justify-between overflow-hidden shadow-2xl animate-in fade-in">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-3">
+                  <h3 className="text-xs font-bold font-mono uppercase text-cyan-300 flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5" />
+                    <span>Dialogue Sessions</span>
+                  </h3>
+                  <button
+                    onClick={handleNewSession}
+                    type="button"
+                    title="New Dialogue"
+                    className="p-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-300 text-xs flex items-center gap-1 font-mono transition-colors"
+                  >
+                    <PlusCircle className="w-3 h-3" />
+                    <span>New</span>
+                  </button>
                 </div>
-              )}
 
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm sm:text-base text-white truncate">{activePersona.name}</h3>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE ORACLE
-                  </span>
+                <div className="space-y-1.5 overflow-y-auto max-h-[500px]">
+                  {sessions.length === 0 ? (
+                    <p className="text-xs text-slate-500 py-6 text-center">No saved dialogues yet.</p>
+                  ) : (
+                    sessions.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={() => {
+                          sfx.playClick();
+                          setMessages(s.messages);
+                          setSelectedPersonaId(s.personaId);
+                          setCurrentSessionId(s.id);
+                          setShowSidebar(false);
+                        }}
+                        className={`p-2.5 rounded-xl border cursor-pointer text-xs transition-all flex items-center justify-between ${
+                          currentSessionId === s.id
+                            ? "bg-cyan-500/20 border-cyan-400 text-white"
+                            : "bg-slate-900/40 border-white/5 text-slate-400 hover:text-white hover:bg-slate-800/60"
+                        }`}
+                      >
+                        <span className="truncate max-w-[180px] font-medium">{s.title}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const filtered = sessions.filter((sess) => sess.id !== s.id);
+                            persistSessions(filtered);
+                          }}
+                          type="button"
+                          className="text-slate-500 hover:text-red-400 p-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <p className="text-xs text-slate-400 font-light truncate max-w-xs sm:max-w-md">
-                  {activePersona.title} • {activePersona.era}
-                </p>
+              </div>
+
+              <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                <span>Auto-saved to Local Codex</span>
+                <button onClick={() => setShowSidebar(false)} type="button" className="text-cyan-400 hover:underline">
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Central Chat Tablet */}
+          <div
+            className={`${
+              showSidebar ? "lg:col-span-5" : activeArtifact && showArtifactDrawer ? "lg:col-span-7" : "lg:col-span-12"
+            } rounded-3xl bg-[#091129]/90 border border-cyan-500/30 backdrop-blur-2xl shadow-[0_20px_80px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden transition-all`}
+          >
+            {/* Active Persona Banner Header */}
+            <div className="p-3.5 sm:p-4 border-b border-white/5 bg-slate-950/70 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                {activePersona.imageUrl ? (
+                  <img
+                    src={activePersona.imageUrl}
+                    alt={activePersona.name}
+                    className="w-10 h-10 rounded-2xl object-cover border-2 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.4)] shrink-0"
+                  />
+                ) : (
+                  <div
+                    className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${activePersona.avatarColor} flex items-center justify-center font-black text-black text-sm shadow-[0_0_15px_rgba(34,211,238,0.4)] shrink-0`}
+                  >
+                    {activePersona.name[0]}
+                  </div>
+                )}
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-sm sm:text-base text-white truncate">{activePersona.name}</h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> LIVE ORACLE
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-light truncate max-w-xs">
+                    {activePersona.title} • {activePersona.era}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {activeArtifact && (
+                  <button
+                    onClick={() => setShowArtifactDrawer(!showArtifactDrawer)}
+                    type="button"
+                    title="Toggle Claude-style Interactive Artifact"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:text-white text-xs font-mono transition-all"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
+                    <span className="hidden sm:inline">Artifact</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={handleDownloadTranscript}
+                  type="button"
+                  title="Download conversation markdown transcript"
+                  className="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  onClick={handleExportToCodex}
+                  type="button"
+                  title="Export to Codex Vault"
+                  className="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  onClick={handleNewSession}
+                  type="button"
+                  title="New Dialogue"
+                  className="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={handleExportToCodex}
-                type="button"
-                title="Export this conversation to your Personal Study Codex Vault"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 hover:text-white hover:bg-cyan-900/60 text-xs font-mono transition-all cursor-pointer"
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Save to Codex</span>
-              </button>
+            {/* Messages Feed */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+              {messages.map((msg) => {
+                const isUser = msg.sender === "user";
+                const isSpeaking = speakingId === msg.id;
+                const isThinkingOpen = expandedThinking[msg.id];
 
-              <button
-                onClick={() => {
-                  sfx.playClick();
-                  stopSpeech();
-                  setMessages([
-                    {
-                      id: "greeting",
-                      sender: "oracle",
-                      text: activePersona.greeting,
-                      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                      source: "Historical Persona Core",
-                      suggestedFollowUps: activePersona.suggestedQuestions.slice(0, 3),
-                    },
-                  ]);
-                }}
-                type="button"
-                title="Reset conversation"
-                className="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white transition-all cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-            {messages.map((msg) => {
-              const isUser = msg.sender === "user";
-              const isSpeaking = speakingId === msg.id;
-
-              return (
-                <div key={msg.id} className="space-y-2">
-                  <div className={`flex items-start gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-                    {/* Avatar */}
-                    <div
-                      className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-xs font-bold ${
-                        isUser
-                          ? "bg-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.4)]"
-                          : `bg-gradient-to-br ${activePersona.avatarColor} text-black shadow-[0_0_10px_rgba(34,211,238,0.4)]`
-                      }`}
-                    >
-                      {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                    </div>
-
-                    {/* Speech Bubble */}
-                    <div
-                      className={`max-w-[88%] sm:max-w-[78%] p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${
-                        isUser
-                          ? "bg-fuchsia-950/40 border border-fuchsia-500/40 text-slate-100 rounded-tr-none"
-                          : "bg-[#0b163a]/80 border border-cyan-500/30 text-slate-200 rounded-tl-none shadow-lg"
-                      }`}
-                    >
-                      <div>{renderFormattedText(msg.text)}</div>
-
-                      {/* Message Footer HUD */}
-                      <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-3 text-[10px] font-mono text-slate-500">
-                        <div className="flex items-center gap-2">
-                          <span>{msg.timestamp}</span>
-                          {msg.source && (
-                            <span className="text-cyan-400/80 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/20">
-                              {msg.source}
-                            </span>
+                return (
+                  <div key={msg.id} className="space-y-2">
+                    {/* Deep Reasoning / Thought Process Accordion (Claude/o1 Style) */}
+                    {!isUser && msg.thinking && (
+                      <div className="pl-11 pr-2">
+                        <button
+                          onClick={() =>
+                            setExpandedThinking((prev) => ({
+                              ...prev,
+                              [msg.id]: !prev[msg.id],
+                            }))
+                          }
+                          type="button"
+                          className="flex items-center gap-2 text-[11px] font-mono text-cyan-400/80 hover:text-cyan-300 py-1 transition-colors cursor-pointer"
+                        >
+                          <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Thought Process (Reasoning Steps)</span>
+                          {isThinkingOpen ? (
+                            <ChevronUp className="w-3 h-3" />
+                          ) : (
+                            <ChevronDown className="w-3 h-3" />
                           )}
-                        </div>
+                        </button>
 
-                        {!isUser && (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => speakText(msg.id, msg.text)}
-                              type="button"
-                              title={isSpeaking ? "Stop voice synthesis" : "Read aloud with neural voice"}
-                              className={`p-1 rounded hover:bg-white/10 transition-colors ${
-                                isSpeaking ? "text-cyan-400 animate-pulse" : "text-slate-400 hover:text-white"
-                              }`}
-                            >
-                              {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                            </button>
-
-                            <button
-                              onClick={() => copyToClipboard(msg.id, msg.text)}
-                              type="button"
-                              title="Copy answer to clipboard"
-                              className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                            >
-                              {copiedId === msg.id ? (
-                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              ) : (
-                                <Copy className="w-3.5 h-3.5" />
-                              )}
-                            </button>
+                        {isThinkingOpen && (
+                          <div className="mt-1.5 p-3 rounded-2xl bg-[#040816]/90 border border-cyan-500/20 text-[11px] font-mono text-slate-400 space-y-1 animate-in fade-in">
+                            <p className="whitespace-pre-line leading-relaxed">{msg.thinking}</p>
                           </div>
                         )}
                       </div>
+                    )}
+
+                    <div className={`flex items-start gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+                      {/* Avatar */}
+                      <div
+                        className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-xs font-bold ${
+                          isUser
+                            ? "bg-fuchsia-500 text-white shadow-[0_0_10px_rgba(232,121,249,0.4)]"
+                            : `bg-gradient-to-br ${activePersona.avatarColor} text-black shadow-[0_0_10px_rgba(34,211,238,0.4)]`
+                        }`}
+                      >
+                        {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                      </div>
+
+                      {/* Speech Bubble */}
+                      <div
+                        className={`max-w-[90%] sm:max-w-[82%] p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                          isUser
+                            ? "bg-fuchsia-950/40 border border-fuchsia-500/40 text-slate-100 rounded-tr-none"
+                            : "bg-[#0b163a]/80 border border-cyan-500/30 text-slate-200 rounded-tl-none shadow-lg"
+                        }`}
+                      >
+                        <div>{renderFormattedText(msg.text)}</div>
+
+                        {/* Message Footer HUD */}
+                        <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-3 text-[10px] font-mono text-slate-500">
+                          <div className="flex items-center gap-2">
+                            <span>{msg.timestamp}</span>
+                            {msg.source && (
+                              <span className="text-cyan-400/80 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-500/20 truncate max-w-[140px]">
+                                {msg.source}
+                              </span>
+                            )}
+                          </div>
+
+                          {!isUser && (
+                            <div className="flex items-center gap-1.5">
+                              {/* Audio Equalizer animation when speaking */}
+                              {isSpeaking && (
+                                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 mr-1">
+                                  <span className="w-1 h-2.5 bg-cyan-400 animate-pulse" />
+                                  <span className="w-1 h-3.5 bg-cyan-400 animate-pulse [animation-delay:0.15s]" />
+                                  <span className="w-1 h-2 bg-cyan-400 animate-pulse [animation-delay:0.3s]" />
+                                </div>
+                              )}
+
+                              <button
+                                onClick={() => speakText(msg.id, msg.text)}
+                                type="button"
+                                title={isSpeaking ? "Stop voice synthesis" : "Read aloud with neural voice"}
+                                className={`p-1 rounded hover:bg-white/10 transition-colors ${
+                                  isSpeaking ? "text-cyan-400 animate-pulse" : "text-slate-400 hover:text-white"
+                                }`}
+                              >
+                                {isSpeaking ? (
+                                  <VolumeX className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => copyToClipboard(msg.id, msg.text)}
+                                type="button"
+                                title="Copy answer to clipboard"
+                                className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                              >
+                                {copiedId === msg.id ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Contextual Follow-Up Suggestions */}
+                    {!isUser && msg.suggestedFollowUps && msg.suggestedFollowUps.length > 0 && (
+                      <div className="pl-11 flex flex-wrap gap-1.5 pt-1">
+                        {msg.suggestedFollowUps.map((prompt, qIdx) => (
+                          <button
+                            key={qIdx}
+                            onClick={() => handleSend(prompt)}
+                            disabled={isTyping}
+                            type="button"
+                            className="text-[11px] font-mono px-3 py-1 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:border-cyan-400 transition-all text-left cursor-pointer active:scale-95 disabled:opacity-40"
+                          >
+                            → {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {isTyping && (
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-xl shrink-0 bg-gradient-to-br ${activePersona.avatarColor} text-black flex items-center justify-center`}
+                  >
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-[#0b163a]/80 border border-cyan-500/30 flex items-center gap-2">
+                    <span className="text-xs font-mono text-cyan-300">
+                      Executing multi-step historical reasoning...
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Prompt Input Form with Speech-to-Text Microphone Dictation */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSend();
+              }}
+              className="p-3 sm:p-4 border-t border-white/5 bg-slate-950/80 flex items-center gap-2"
+            >
+              {/* Microphone Speech Recognition Button */}
+              <button
+                onClick={toggleSpeechRecognition}
+                type="button"
+                title={isListening ? "Stop listening" : "Dictate with your voice (Free Voice Mode)"}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                  isListening
+                    ? "bg-rose-500/20 border-rose-400 text-rose-300 animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.5)]"
+                    : "bg-[#060c20] border-cyan-500/30 text-cyan-400 hover:text-white hover:border-cyan-400"
+                }`}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+
+              <input
+                type="text"
+                placeholder={
+                  isListening
+                    ? "Listening to your voice... Speak your question..."
+                    : `Ask ${activePersona.name} any question about discoveries, equations, or history...`
+                }
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className={`flex-1 bg-[#060c20] border rounded-2xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${
+                  isListening ? "border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)]" : "border-cyan-500/30 focus:border-cyan-400"
+                }`}
+              />
+
+              <button
+                type="submit"
+                disabled={!inputValue.trim() || isTyping}
+                className="p-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-black hover:opacity-95 disabled:opacity-40 transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+
+          {/* Right Claude-Style Interactive Artifact Canvas */}
+          {activeArtifact && showArtifactDrawer && (
+            <div className="lg:col-span-5 rounded-3xl bg-[#070e24]/95 border-2 border-cyan-400/40 p-4 sm:p-5 flex flex-col justify-between overflow-hidden shadow-[0_0_50px_rgba(34,211,238,0.2)] animate-in slide-in-from-right-4">
+              <div>
+                {/* Artifact Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileCode className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 uppercase">
+                        {activeArtifact.badge}
+                      </span>
+                      <h4 className="text-xs sm:text-sm font-bold text-white mt-1 truncate">
+                        {activeArtifact.title}
+                      </h4>
                     </div>
                   </div>
 
-                  {/* Contextual Follow-Up Suggestions */}
-                  {!isUser && msg.suggestedFollowUps && msg.suggestedFollowUps.length > 0 && (
-                    <div className="pl-11 flex flex-wrap gap-2 pt-1">
-                      {msg.suggestedFollowUps.map((prompt, qIdx) => (
-                        <button
-                          key={qIdx}
-                          onClick={() => handleSend(prompt)}
-                          disabled={isTyping}
-                          type="button"
-                          className="text-[11px] font-mono px-3 py-1 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:border-cyan-400 transition-all text-left cursor-pointer active:scale-95 disabled:opacity-40"
-                        >
-                          → {prompt}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <button
+                    onClick={() => setShowArtifactDrawer(false)}
+                    type="button"
+                    className="text-slate-400 hover:text-white p-1"
+                  >
+                    <Minimize2 className="w-4 h-4" />
+                  </button>
                 </div>
-              );
-            })}
 
-            {isTyping && (
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-8 h-8 rounded-xl shrink-0 bg-gradient-to-br ${activePersona.avatarColor} text-black flex items-center justify-center`}
-                >
-                  <Bot className="w-4 h-4" />
+                {/* Artifact Content Canvas */}
+                <div className="bg-[#020510] border border-cyan-500/20 rounded-2xl p-4 font-mono text-xs text-cyan-200 overflow-x-auto max-h-[460px] whitespace-pre-wrap leading-relaxed shadow-inner">
+                  {activeArtifact.data}
                 </div>
-                <div className="p-3.5 rounded-2xl bg-[#0b163a]/80 border border-cyan-500/30 flex items-center gap-2">
-                  <span className="text-xs font-mono text-cyan-300">Synthesizing historical knowledge...</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]" />
-                </div>
+
+                <p className="mt-3 text-xs text-slate-300 font-light leading-relaxed">
+                  {activeArtifact.summary}
+                </p>
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
 
-          {/* Prompt Input Form */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSend();
-            }}
-            className="p-3 sm:p-4 border-t border-white/5 bg-slate-950/80 flex items-center gap-2"
-          >
-            <input
-              type="text"
-              placeholder={`Ask ${activePersona.name} any question about discoveries, theories, or history...`}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 bg-[#060c20] border border-cyan-500/30 rounded-2xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim() || isTyping}
-              className="p-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-black hover:opacity-95 disabled:opacity-40 transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.4)]"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
+              {/* Artifact Action Bar */}
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                <button
+                  onClick={() => copyToClipboard("artifact", activeArtifact.data)}
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-xs text-slate-300 hover:text-white transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Artifact</span>
+                </button>
+
+                <button
+                  onClick={handleExportToCodex}
+                  type="button"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-black font-bold text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-opacity hover:opacity-95"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Save to Codex Vault</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
