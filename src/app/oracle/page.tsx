@@ -239,6 +239,86 @@ const PRESET_PERSONAS: Persona[] = [
     ],
   },
   {
+    id: "galileo",
+    name: "Galileo Galilei",
+    title: "Father of Observational Astronomy & Modern Physics",
+    era: "1564 – 1642",
+    avatarColor: "from-blue-400 to-teal-600",
+    imageUrl: "/portraits/galileo-galilei.jpg",
+    greeting:
+      "Salute! I am Galileo Galilei. Through my improved spyglass, I looked upon the rugged mountains of the Moon and the moons of Jupiter, proving that the heavens obey mathematical laws and that the Earth moves. What mystery of motion or the stars shall we explore?",
+    suggestedQuestions: [
+      "How did your telescope observations disprove geocentrism?",
+      "What truly happened during your trial before the Roman Inquisition?",
+      "What is the Law of Falling Bodies and did you drop balls from Pisa?",
+      "Why is mathematics the language of the universe?",
+    ],
+  },
+  {
+    id: "franklin",
+    name: "Rosalind Franklin",
+    title: "Chemist of Photo 51 & Double Helix Architecture",
+    era: "1920 – 1958",
+    avatarColor: "from-rose-400 to-pink-600",
+    imageUrl: "/portraits/rosalind-franklin.jpg",
+    greeting:
+      "Hello. I am Rosalind Franklin. In my laboratory at King's College London, precision and empirical data guided every exposure. Through Photo 51, the B-form helical structure of DNA revealed itself. What questions of molecular crystallography shall we discuss?",
+    suggestedQuestions: [
+      "What is the story behind Photo 51 and the discovery of DNA?",
+      "What were the technical hurdles of X-ray diffraction on wet fibers?",
+      "What was your research on the Tobacco Mosaic Virus and coal?",
+      "What principles guided your uncompromising scientific rigor?",
+    ],
+  },
+  {
+    id: "darwin",
+    name: "Charles Darwin",
+    title: "Architect of Evolution & Natural Selection",
+    era: "1809 – 1882",
+    avatarColor: "from-emerald-500 to-green-700",
+    imageUrl: "/portraits/charles-darwin.jpg",
+    greeting:
+      "A warm day to you. I am Charles Darwin. Aboard HMS Beagle and across decades at Down House, I observed the boundless varieties of life and deduced how natural selection shapes all living creatures. What questions of nature's adaptations bring you here?",
+    suggestedQuestions: [
+      "How did your voyage on HMS Beagle inspire the theory of evolution?",
+      "How does natural selection drive the adaptation of species?",
+      "What was your reaction when Alfred Russel Wallace sent his essay?",
+      "What did you mean by 'grandeur in this view of life'?",
+    ],
+  },
+  {
+    id: "kalam",
+    name: "Dr. A. P. J. Abdul Kalam",
+    title: "Missile Man of India & Aerospace Pioneer",
+    era: "1931 – 2015",
+    avatarColor: "from-amber-400 to-orange-600",
+    imageUrl: "/portraits/apj-abdul-kalam.jpg",
+    greeting:
+      "Vanakkam and warm greetings! I am Dr. A. P. J. Abdul Kalam. Dreams are not what you see while sleeping; dreams are what do not let you sleep! Let us discuss rocket engineering, overcoming failure, and igniting the power of youth.",
+    suggestedQuestions: [
+      "How did you lead India's SLV-3 satellite launch vehicle project?",
+      "What is the greatest leadership lesson Prof. Satish Dhawan taught you?",
+      "What is your advice for students facing failure and hardship?",
+      "How can technology be harnessed to uplift rural communities?",
+    ],
+  },
+  {
+    id: "aryabhata",
+    name: "Aryabhata",
+    title: "Ancient Master Astronomer & Formulator of Zero",
+    era: "476 – 550 CE",
+    avatarColor: "from-orange-400 to-yellow-600",
+    imageUrl: "/portraits/aryabhata.jpg",
+    greeting:
+      "Namaskar. I am Aryabhata. In the ancient observatory of Kusumapura fifteen centuries ago, I composed the Aryabhatiya, calculated pi to 3.1416, and proved that the Earth rotates upon its axis. What astronomical calculations shall we explore?",
+    suggestedQuestions: [
+      "How did you calculate that the Earth rotates daily on its axis?",
+      "What was your method for approximating the value of pi as 3.1416?",
+      "How did you explain solar and lunar eclipses scientifically without myth?",
+      "What is the Aryabhatiya sine table (Jya)?",
+    ],
+  },
+  {
     id: "universal",
     name: "Grand Oracle of History",
     title: "Omniscient Scholar of All Historical Biographies",
@@ -300,7 +380,7 @@ export default function OraclePage() {
     [personas, selectedPersonaId]
   );
 
-  // Load saved sessions & settings from localStorage
+  // Load saved sessions & settings from localStorage and check URL persona param
   useEffect(() => {
     try {
       const storedKey = localStorage.getItem("lifelegends_oracle_custom_key");
@@ -311,8 +391,24 @@ export default function OraclePage() {
         const parsed = JSON.parse(storedSessions);
         setSessions(parsed);
       }
+
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pParam = urlParams.get("persona") || urlParams.get("p");
+        if (pParam) {
+          const cleanP = pParam.toLowerCase().replace("bio-", "");
+          const match = personas.find(
+            (p) =>
+              p.id.toLowerCase() === cleanP ||
+              p.id.toLowerCase().includes(cleanP) ||
+              cleanP.includes(p.id.toLowerCase()) ||
+              p.name.toLowerCase().includes(cleanP)
+          );
+          if (match) setSelectedPersonaId(match.id);
+        }
+      }
     } catch {}
-  }, []);
+  }, [personas]);
 
   // Save sessions to localStorage
   const persistSessions = (updated: ChatSession[]) => {

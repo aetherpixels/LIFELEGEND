@@ -1,7 +1,8 @@
 import { client } from "@/sanity/client";
 import imageUrlBuilder from '@sanity/image-url';
 import { PortableText } from '@portabletext/react';
-import { Quote } from "lucide-react";
+import { Quote, Sparkles, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdBanner from "@/components/AdBanner";
 import Navbar from "@/components/Navbar";
@@ -110,6 +111,28 @@ async function BiographyContent({ slugPromise }: { slugPromise: Promise<{ slug: 
               </div>
             </div>
           </div>
+
+          {/* Feature: Direct AI Oracle Discussion */}
+          <Link
+            href={`/oracle?persona=${slug}`}
+            className="group block relative overflow-hidden rounded-2xl p-[1px] focus:outline-none transition-transform hover:scale-[1.02]"
+          >
+            <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500 rounded-2xl opacity-75 group-hover:opacity-100 transition-opacity" />
+            <div className="relative px-6 py-5 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-white/10 group-hover:bg-slate-900/90 transition-all flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-mono tracking-widest text-indigo-300">Live AI Oracle</p>
+                  <p className="font-bold text-white text-base group-hover:text-cyan-300 transition-colors">
+                    Consult {biography.name}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Link>
         </div>
 
         {/* Right Column: Main Content */}
