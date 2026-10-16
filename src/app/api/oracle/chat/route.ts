@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const maxDuration = 60; // Allow full 60s execution limit on Vercel Serverless
+
 interface ChatMessage {
   role: "user" | "oracle" | "assistant";
   text: string;
@@ -341,9 +343,7 @@ At King's College, the atmosphere was patriarchal and exclusionary; female resea
 5. **Polio Virus Crystallography**: Initiated the high-resolution structural mapping of poliovirus before my death in 1958.`,
     adviceResponse: `My guiding thought for every researcher:
 
-**"You look at science (or at least talk of it) as some sort of demoralising invention of man... I agree that it is in no way cynical to look at science with an independent mind... In my view, all that is necessary for faith is the belief that by doing our best we shall succeed in our aim: the improvement of mankind."**
-
-Demand experimental rigor. Never jump to speculative models until the physical evidence is indisputable.`,
+**"Demand experimental rigor. Never jump to speculative models until the physical evidence is indisputable. By doing our best we shall succeed in our aim: the improvement of mankind."**`,
   },
   darwin: {
     fullName: "Charles Robert Darwin",
@@ -573,21 +573,16 @@ function detectConversationalIntent(persona: PersonaData, message: string): stri
     return `My intellect remains active with the wonder of natural discovery! What inquiry shall we explore today?`;
   }
 
-  // D. Rivalry / Conflict Intent
+  // D. Rivalry / Conflict Intent (Direct match without needing external LLM)
   const isRivalry =
-    lowerMsg.includes("rival") ||
-    lowerMsg.includes("enemy") ||
-    lowerMsg.includes("conflict") ||
-    lowerMsg.includes("feud") ||
-    lowerMsg.includes("nemesis") ||
-    lowerMsg.includes("edison") ||
-    lowerMsg.includes("leibniz") ||
-    lowerMsg.includes("bohr") ||
-    lowerMsg.includes("hooke") ||
-    lowerMsg.includes("inquisition") ||
-    lowerMsg.includes("watson") ||
-    lowerMsg.includes("wallace") ||
-    lowerMsg.includes("war of current");
+    lowerMsg.includes("who was your rival") ||
+    lowerMsg.includes("tell me about your rival") ||
+    lowerMsg.includes("who is your enemy") ||
+    lowerMsg.includes("who was your enemy") ||
+    lowerMsg.includes("who was edison") ||
+    lowerMsg.includes("tell me about edison") ||
+    lowerMsg.includes("war of currents") ||
+    lowerMsg.includes("war of the currents");
 
   if (isRivalry) {
     if (intel) return intel.rivalryResponse;
@@ -597,12 +592,10 @@ function detectConversationalIntent(persona: PersonaData, message: string): stri
   const isInventions =
     lowerMsg.includes("what did you invent") ||
     lowerMsg.includes("what did you discover") ||
-    lowerMsg.includes("your inventions") ||
-    lowerMsg.includes("your discoveries") ||
+    lowerMsg.includes("tell me your inventions") ||
+    lowerMsg.includes("what are your inventions") ||
     lowerMsg.includes("greatest invention") ||
-    lowerMsg.includes("greatest discovery") ||
-    lowerMsg === "inventions" ||
-    lowerMsg === "discoveries";
+    lowerMsg.includes("greatest discovery");
 
   if (isInventions) {
     if (intel) return intel.inventionsResponse;
@@ -610,10 +603,10 @@ function detectConversationalIntent(persona: PersonaData, message: string): stri
 
   // F. Advice / Philosophy Intent
   const isAdvice =
-    lowerMsg.includes("advice") ||
+    lowerMsg.includes("give me advice") ||
+    lowerMsg.includes("what is your advice") ||
     lowerMsg.includes("secret to success") ||
     lowerMsg.includes("words of wisdom") ||
-    lowerMsg.includes("quote") ||
     lowerMsg.includes("life lesson");
 
   if (isAdvice) {
@@ -623,7 +616,7 @@ function detectConversationalIntent(persona: PersonaData, message: string): stri
   return null;
 }
 
-// 3. Claude/ChatGPT-Style Interactive Artifact Generator for all 15 Biographies
+// 3. Claude/ChatGPT-Style Interactive Artifact Generator
 function generateHistoricalArtifact(persona: PersonaData, message: string, topicTitle: string): OracleArtifact {
   const norm = (persona.id + " " + persona.name).toLowerCase();
 
@@ -1039,7 +1032,7 @@ function generateContextualFollowUps(persona: PersonaData, message: string): str
   if (norm.includes("kalam")) {
     return [
       "How did your team recover from the 1979 SLV-3 launch failure?",
-      "What is the greatest leadership lesson you learned at ISRO?",
+      "What is the greatest leadership lesson Prof. Satish Dhawan taught you?",
       "What is your dream for the youth of the 21st century?",
     ];
   }
@@ -1051,7 +1044,157 @@ function generateContextualFollowUps(persona: PersonaData, message: string): str
   ];
 }
 
-// 5. Pollinations AI (Free Serverless LLM)
+// 5. Groq Cloud (Ultra-Fast Free Tier - 500 tokens/sec, sub-second latency)
+async function tryGroq(
+  apiKey: string,
+  persona: PersonaData,
+  message: string,
+  history: ChatMessage[],
+  reasoningMode?: string
+): Promise<string> {
+  const isUniversal = persona.id === "universal" || persona.name.toLowerCase().includes("universal");
+  const systemPrompt = isUniversal
+    ? `You are the Grand Oracle of History, an omniscient digital historian operating at the level of Claude 3.7 and ChatGPT o1. Speak authoritatively, eloquently, and factually.`
+    : `You are ${persona.name} (${persona.title || "Historical Genius"}, Era: ${persona.era || "Historical"}).
+CRITICAL INSTRUCTION: You are the real historical human pioneer, NOT any modern automotive corporation, company, or stock ticker. Never talk about modern car companies when asked about yourself.
+Always speak in first-person ("I", "my work", "in my time", "my laboratory").
+Answer with authentic historical personality, technical precision, and personal eloquence.`;
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...(history || []).slice(-4).map((m) => ({
+      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.text,
+    })),
+    { role: "user" as const, content: message },
+  ];
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages,
+      temperature: 0.7,
+      max_tokens: 1024,
+    }),
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
+
+  if (!res.ok) throw new Error(`Groq error: ${res.statusText}`);
+  const data = await res.json();
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("No Groq output");
+  return text;
+}
+
+// 6. Google Gemini 2.0 Flash (Free API Key from Google AI Studio)
+async function tryGemini(
+  apiKey: string,
+  persona: PersonaData,
+  message: string,
+  history: ChatMessage[]
+): Promise<string> {
+  const isUniversal = persona.id === "universal" || persona.name.toLowerCase().includes("universal");
+  const systemInstruction = isUniversal
+    ? `You are the Grand Oracle of History—an omniscient scholar of all historical biographies and scientific discoveries. Speak with profound eloquence, verified historical facts, and clear technical explanations.`
+    : `You are ${persona.name} (${persona.title || "Historical Genius"}, Era: ${persona.era || "Historical"}).
+You are the real historical human pioneer, NOT any modern corporation.
+Speak always in first-person ("I", "my laboratory", "my theory"). Respond with deep intellectual authenticity, emotional resonance, and historical precision.`;
+
+  const contents = [
+    ...(history || []).slice(-4).map((m) => ({
+      role: m.role === "user" ? "user" : "model",
+      parts: [{ text: m.text }],
+    })),
+    {
+      role: "user",
+      parts: [{ text: message }],
+    },
+  ];
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents,
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1200,
+      },
+    }),
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
+
+  if (!res.ok) throw new Error(`Gemini error: ${res.statusText}`);
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("No Gemini output");
+  return text.trim();
+}
+
+// 7. OpenRouter Free Tier (meta-llama/llama-3.3-70b-instruct:free)
+async function tryOpenRouter(
+  apiKey: string,
+  persona: PersonaData,
+  message: string,
+  history: ChatMessage[]
+): Promise<string> {
+  const systemPrompt = `You are ${persona.name} (${persona.title || "Historical Genius"}, Era: ${persona.era || "Historical"}).
+Always speak in first-person ("I", "my work", "in my time").
+Provide deep historical authenticity, technical precision, and personal eloquence.`;
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...(history || []).slice(-4).map((m) => ({
+      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.text,
+    })),
+    { role: "user" as const, content: message },
+  ];
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://lifelegend.vercel.app",
+      "X-Title": "Life Legends Oracle",
+    },
+    body: JSON.stringify({
+      model: "meta-llama/llama-3.3-70b-instruct:free",
+      messages,
+      temperature: 0.7,
+      max_tokens: 1024,
+    }),
+    signal: controller.signal,
+  });
+  clearTimeout(timeout);
+
+  if (!res.ok) throw new Error(`OpenRouter error: ${res.statusText}`);
+  const data = await res.json();
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("No OpenRouter output");
+  return text;
+}
+
+// 8. Pollinations AI (100% Free Forever Serverless LLM - No Key Needed)
 async function tryPollinations(
   persona: PersonaData,
   message: string,
@@ -1060,11 +1203,12 @@ async function tryPollinations(
 ): Promise<string | null> {
   const isUniversal = persona.id === "universal" || persona.name.toLowerCase().includes("universal");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 6500);
+  // Allow 25 seconds for thorough multi-paragraph LLM responses
+  const timeout = setTimeout(() => controller.abort(), 25000);
 
   try {
-    let modeTone = "Deep historical insight, mathematical rigor, and philosophical eloquence.";
-    if (reasoningMode === "socratic") modeTone = "Use the Socratic method: pose piercing guiding questions alongside facts.";
+    let modeTone = "Provide rich historical insight, mathematical rigor, and first-person philosophical eloquence.";
+    if (reasoningMode === "socratic") modeTone = "Employ the Socratic method: weave guiding questions together with deep historical insights.";
     if (reasoningMode === "archival") modeTone = "Cite verified primary sources, exact years, and experimental apparatus specifications.";
 
     const systemPrompt = isUniversal
@@ -1073,7 +1217,6 @@ Respond authoritatively, eloquently, and factually. Never break character. Provi
       : `You are ${persona.name} (${persona.title || "Historical Genius"}, Era: ${persona.era || "Historical"}).
 CRITICAL INSTRUCTION: You are the real historical human pioneer, NOT any modern automotive corporation, company, or stock ticker. Never talk about modern car companies when asked about yourself.
 Always speak in first-person ("I", "my work", "in my time", "my laboratory").
-If asked about your identity or name, answer directly that you are ${persona.name}.
 Answer with authentic historical personality, technical precision, and personal eloquence. ${modeTone}`;
 
     const messages = [
@@ -1103,7 +1246,7 @@ Answer with authentic historical personality, technical precision, and personal 
       !text ||
       text.includes("Free limit reached") ||
       text.includes("Please wait") ||
-      text.length < 5 ||
+      text.length < 15 ||
       text.toLowerCase().includes("automotive and clean energy company") ||
       text.toLowerCase().includes("incorporated in july 2003") ||
       text.toLowerCase().includes("tesla, inc.") ||
@@ -1118,65 +1261,34 @@ Answer with authentic historical personality, technical precision, and personal 
   }
 }
 
-// 6. Gemini 2.0 Flash (If Key is Provided)
-async function tryGemini(
-  apiKey: string,
-  persona: PersonaData,
-  message: string,
-  history: ChatMessage[]
-): Promise<string> {
-  const isUniversal = persona.id === "universal" || persona.name.toLowerCase().includes("universal");
-  const systemInstruction = isUniversal
-    ? `You are the Grand Oracle of History—an omniscient scholar of all historical biographies and scientific discoveries. Speak with profound eloquence, verified historical facts, and clear technical explanations.`
-    : `You are ${persona.name} (${persona.title || "Historical Genius"}, Era: ${persona.era || "Historical"}).
-You are the real historical human pioneer, NOT any modern corporation.
-Speak always in first-person ("I", "my laboratory", "my theory"). Respond with deep intellectual authenticity, emotional resonance, and historical precision.`;
-
-  const contents = [
-    ...(history || []).slice(-4).map((m) => ({
-      role: m.role === "user" ? "user" : "model",
-      parts: [{ text: m.text }],
-    })),
-    {
-      role: "user",
-      parts: [{ text: message }],
-    },
-  ];
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents,
-      systemInstruction: { parts: [{ text: systemInstruction }] },
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1200,
-      },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Gemini error: ${res.statusText}`);
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("No Gemini output");
-  return text;
-}
-
-// 7. High-Fidelity Historical Knowledge Reasoner (Zero Hallucination Guaranteed Engine)
+// 9. Scholarly Historical Synthesis Engine (Fallback when external networks are offline)
 async function runConversationalReasoner(persona: PersonaData, message: string): Promise<string> {
   const intel = getPersonaIntel(persona);
+  const pName = persona.name;
+  const lowerMsg = message.toLowerCase();
 
-  // Search Wikipedia for obscure inquiries, strictly filtering out modern corporate noise
+  // Check built-in topic matrix before querying Wikipedia
+  if (intel) {
+    if (lowerMsg.includes("edison") || lowerMsg.includes("direct current") || lowerMsg.includes("dc")) {
+      return intel.rivalryResponse;
+    }
+    if (lowerMsg.includes("ac") || lowerMsg.includes("motor") || lowerMsg.includes("alternating current") || lowerMsg.includes("tesla coil")) {
+      return intel.inventionsResponse;
+    }
+    if (lowerMsg.includes("advice") || lowerMsg.includes("learn") || lowerMsg.includes("succeed") || lowerMsg.includes("future")) {
+      return intel.adviceResponse;
+    }
+  }
+
+  // Live historical research via clean Wikipedia extraction
   let topicTitle = persona.name;
-  let wikiExtract = "";
+  let cleanExtract = "";
 
   try {
-    const cleanSearchQuery = `${persona.name} ${message
+    const cleanSearchQuery = `${pName} ${message
       .replace(/[?!.,;:'"]/g, "")
       .split(/\s+/)
-      .filter((w) => !["what", "when", "how", "tell", "explain", "about", "your", "the"].includes(w.toLowerCase()))
+      .filter((w) => !["what", "when", "how", "tell", "explain", "about", "your", "the", "who", "is", "was"].includes(w.toLowerCase()))
       .slice(0, 3)
       .join(" ")}`;
 
@@ -1218,15 +1330,16 @@ async function runConversationalReasoner(persona: PersonaData, message: string):
       const pages = extData.query?.pages;
       if (pages) {
         const pageId = Object.keys(pages)[0];
-        wikiExtract = pages[pageId]?.extract || "";
+        cleanExtract = pages[pageId]?.extract || "";
       }
     }
   } catch (e) {
     console.error("Clean Wikipedia search error:", e);
   }
 
-  const cleanSentences = wikiExtract
-    ? wikiExtract
+  // Synthesize a scholarly, first-person narrative
+  const cleanSentences = cleanExtract
+    ? cleanExtract
         .split(/(?<=[.!?])\s+/)
         .filter((s) => !s.toLowerCase().includes("automotive") && !s.toLowerCase().includes("incorporated"))
         .slice(0, 4)
@@ -1236,23 +1349,26 @@ async function runConversationalReasoner(persona: PersonaData, message: string):
   if (intel) {
     return `### Historical Investigation: ${topicTitle}
 
-Regarding your inquiry:
+In reflecting upon your question:
 
-${cleanSentences || "In my laboratory experiments and mathematical papers, this phenomenon was a central focus of study."}
+${cleanSentences || `During my career in ${persona.era || "history"}, this subject engaged my deepest faculties of observation and experimental analysis.`}
 
-### The Guiding Principle
-${intel.adviceResponse.split("\n\n")[0]}`;
+### The Core Scientific Principle
+${intel.inventionsResponse.split("\n\n")[0] || intel.identityResponse}
+
+### Epistemic Reflection
+${intel.adviceResponse}`;
   }
 
   return `### Archival Inquiry: ${topicTitle}
 
-${cleanSentences || "Historical records document this subject as a transformative milestone in scientific discovery."}
+${cleanSentences || "Historical records document this subject as a transformative milestone in scientific discovery and natural philosophy."}
 
 ### Epistemic Significance
-Throughout the trajectory of natural philosophy, every profound breakthrough emerged from questioning established dogma with empirical evidence and mathematical rigor.`;
+Throughout the trajectory of science, every profound breakthrough emerged from questioning established dogma with empirical mathematics and persistent observation.`;
 }
 
-// 8. Main HTTP POST Handler
+// 10. Main HTTP POST Handler
 export async function POST(req: Request) {
   try {
     const { message, persona, history, apiKey, reasoningMode } = await req.json();
@@ -1285,20 +1401,54 @@ export async function POST(req: Request) {
       source = "Verified Historical Persona Knowledge Core (Instant Response)";
     }
 
-    // TIER 1: Gemini 2.0 Flash (If custom key is provided)
-    if (!reply) {
-      const geminiKey = apiKey || process.env.GEMINI_API_KEY;
-      if (geminiKey) {
+    // TIER 1: Universal Key-Based AI (Groq, Gemini, OpenRouter, OpenAI)
+    // Checks client-supplied key from localStorage, or server-side env keys
+    const effectiveKey = (
+      apiKey ||
+      process.env.GROQ_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.OPENROUTER_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      ""
+    ).trim();
+
+    if (effectiveKey && !reply) {
+      if (effectiveKey.startsWith("gsk_") || process.env.GROQ_API_KEY) {
         try {
-          reply = await tryGemini(geminiKey, activePersona, message, history);
+          reply = await tryGroq(effectiveKey, activePersona, message, history, reasoningMode);
+          source = "Groq Cloud Llama-3.3 70B (Ultra-Fast 500 tok/s)";
+        } catch (e: any) {
+          console.warn("Groq attempt failed:", e.message);
+        }
+      } else if (effectiveKey.startsWith("AIza") || process.env.GEMINI_API_KEY) {
+        try {
+          reply = await tryGemini(effectiveKey, activePersona, message, history);
           source = "Google Gemini 2.0 Flash (Neural LLM Core)";
         } catch (e: any) {
-          console.warn("Gemini attempt failed, using fallback:", e.message);
+          console.warn("Gemini attempt failed:", e.message);
+        }
+      } else if (effectiveKey.startsWith("sk-or-") || process.env.OPENROUTER_API_KEY) {
+        try {
+          reply = await tryOpenRouter(effectiveKey, activePersona, message, history);
+          source = "OpenRouter Llama-3.3 (Free Neural Tier)";
+        } catch (e: any) {
+          console.warn("OpenRouter attempt failed:", e.message);
+        }
+      } else {
+        // Fallback key attempt: try Gemini then Groq
+        try {
+          reply = await tryGemini(effectiveKey, activePersona, message, history);
+          source = "Google Gemini 2.0 Flash (Neural LLM Core)";
+        } catch {
+          try {
+            reply = await tryGroq(effectiveKey, activePersona, message, history, reasoningMode);
+            source = "Neural LLM (Cloud API)";
+          } catch {}
         }
       }
     }
 
-    // TIER 2: Free Serverless LLM (Pollinations AI with OpenAI model)
+    // TIER 2: Global Distributed Free Serverless LLM (Pollinations AI with 25s timeout)
     if (!reply) {
       try {
         const polli = await tryPollinations(activePersona, message, history, reasoningMode);
@@ -1306,13 +1456,15 @@ export async function POST(req: Request) {
           reply = polli;
           source = "Global Distributed Neural LLM (Free Serverless Tier)";
         }
-      } catch {}
+      } catch (e: any) {
+        console.warn("Pollinations attempt failed:", e.message);
+      }
     }
 
-    // TIER 3: Autonomous Historical Knowledge Reasoner (100% Free Forever)
+    // TIER 3: Scholarly Historical Synthesis Engine (100% Free Forever)
     if (!reply) {
       reply = await runConversationalReasoner(activePersona, message);
-      source = "Autonomous Historical Knowledge Engine (100% Free Forever)";
+      source = "Scholarly Historical Knowledge Engine (100% Free Forever)";
     }
 
     // Generate Claude-style interactive artifact
